@@ -1,0 +1,10 @@
+{
+  "name": "grade12-english",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Free English learning website for Egyptian Grade 12 students (static site for GitHub Pages).",
+  "scripts": {
+    "test": "node --test tests/schema.test.js tests/store.test.js tests/quiz-engine.test.js",
+    "validate": "node tools/validate-content.js"
+  }
+}
