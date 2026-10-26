@@ -1,26 +1,79 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" dir="ltr">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Content Manager — Grade 12 English</title>
   <meta name="description" content="Add, edit, import and export the website's content.">
   <link rel="icon" href="data:,">
+  <script>
+    /* 1. Apply the saved interface language before the page is drawn. */
+    (function () {
+      try {
+        if (localStorage.getItem('g12-lang') === 'ar') {
+          document.documentElement.lang = 'ar';
+          document.documentElement.dir = 'rtl';
+        }
+      } catch (error) { /* storage blocked: English */ }
+    })();
+
+    /* 2. Fallback: if a CSS or JavaScript file cannot be loaded (for example,
+       because a folder was not uploaded to GitHub), show a clear message
+       instead of an unstyled page that keeps saying "Loading…".
+       This must stay inline: an external file could be missing too. */
+    (function () {
+      var failed = [];
+      window.addEventListener('error', function (event) {
+        var node = event.target;
+        if (node && (node.tagName === 'LINK' || node.tagName === 'SCRIPT')) {
+          failed.push({ file: node.getAttribute('href') || node.getAttribute('src'), script: node.tagName === 'SCRIPT' });
+        }
+      }, true);
+      window.addEventListener('load', function () {
+        if (!failed.length) return;
+        var arabic = document.documentElement.lang === 'ar';
+        var files = failed.map(function (f) { return f.file; }).join(', ');
+        var box = document.createElement('div');
+        box.id = 'load-failure';
+        box.setAttribute('role', 'alert');
+        box.style.cssText = 'margin:1rem 0;padding:1rem;border:2px solid #a8261b;border-radius:8px;background:#fbeceb;color:#1d2733;font:1rem/1.6 system-ui,Tahoma,sans-serif';
+        box.textContent = arabic
+          ? 'تعذّر تحميل جزء من هذه الصفحة (' + files + '). يُرجى إعادة تحميل الصفحة. إذا كنت تدير هذا الموقع، فتأكد من رفع المجلدات css وjs وdata إلى مستودع GitHub.'
+          : 'Part of this page could not be loaded (' + files + '). Please reload the page. If you manage this website, check that the css, js and data folders are uploaded to the GitHub repository.';
+        var main = document.getElementById('main');
+        if (main) main.insertBefore(box, main.firstChild);
+        if (failed.some(function (f) { return f.script; })) {
+          [].forEach.call(document.querySelectorAll('.loading, [data-count]'), function (node) {
+            node.classList.remove('loading');
+            node.textContent = arabic ? 'تعذّر تحميل هذا المحتوى.' : 'This content could not be loaded.';
+          });
+        }
+      });
+    })();
+  </script>
   <link rel="stylesheet" href="css/style.css">
+  <script src="js/i18n-ar.js"></script>
+  <script src="js/i18n.js"></script>
 </head>
 <body>
-  <a class="skip-link" href="#main">Skip to main content</a>
+  <a class="skip-link" href="#main" data-i18n="Skip to main content">Skip to main content</a>
 
   <header class="site-header">
     <div class="container header-inner">
-      <a class="brand" href="index.html">Grade 12 English <span>Free practice for Egyptian secondary students</span></a>
-      <nav aria-label="Main">
+      <a class="brand" href="index.html"><span class="brand-name" data-i18n="Grade 12 English">Grade 12 English</span> <span class="brand-tagline" data-i18n="Free practice for Egyptian secondary students">Free practice for Egyptian secondary students</span></a>
+      <div class="header-tools">
+        <button type="button" class="lang-toggle" lang="ar" hidden>العربية</button>
+        <button type="button" class="nav-toggle" aria-expanded="false" aria-controls="site-nav" hidden>
+          <span class="nav-toggle-icon" aria-hidden="true"></span><span data-i18n="Menu">Menu</span>
+        </button>
+      </div>
+      <nav id="site-nav" class="site-nav" aria-label="Main" data-i18n-aria="Main">
         <ul class="nav-list">
-          <li><a href="index.html">Home</a></li>
-          <li><a href="grammar.html">Grammar Lessons</a></li>
-          <li><a href="summaries.html">Summaries</a></li>
-          <li><a href="practice.html">Practice</a></li>
-          <li><a href="reading.html">Reading</a></li>
+          <li><a href="index.html" data-i18n="Home">Home</a></li>
+          <li><a href="grammar.html" data-i18n="Grammar Lessons">Grammar Lessons</a></li>
+          <li><a href="summaries.html" data-i18n="Grammar Summaries">Grammar Summaries</a></li>
+          <li><a href="practice.html" data-i18n="Grammar Practice">Grammar Practice</a></li>
+          <li><a href="reading.html" data-i18n="Reading Comprehension">Reading Comprehension</a></li>
         </ul>
       </nav>
     </div>
@@ -28,16 +81,16 @@
 
   <main id="main" class="container" tabindex="-1">
     <div id="page-root">
-      <h1>Content Manager</h1>
-      <p class="loading" role="status">Loading…</p>
+      <h1 data-i18n="Content Manager">Content Manager</h1>
+      <p class="loading" role="status" data-i18n="Loading…">Loading…</p>
     </div>
-    <noscript><p class="notice notice--error">This website needs JavaScript to show its content. Please turn on JavaScript in your browser.</p></noscript>
+    <noscript><p class="notice notice--error">This website needs JavaScript to show its content. Please turn on JavaScript in your browser.<br><span lang="ar" dir="rtl">يحتاج هذا الموقع إلى JavaScript لعرض محتواه. يُرجى تفعيل JavaScript في المتصفح.</span></p></noscript>
   </main>
 
   <footer class="site-footer">
     <div class="container">
-      <p>A free English learning resource for Egyptian Grade 12 students.</p>
-      <p><a href="manage.html">Content manager (for teachers)</a></p>
+      <p data-i18n="A free English learning resource for Egyptian Grade 12 students.">A free English learning resource for Egyptian Grade 12 students.</p>
+      <p><a href="manage.html" data-i18n="Content manager (for teachers)">Content manager (for teachers)</a></p>
     </div>
   </footer>
 

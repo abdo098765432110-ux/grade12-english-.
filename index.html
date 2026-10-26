@@ -1,77 +1,134 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" dir="ltr">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Grade 12 English</title>
   <meta name="description" content="Free English grammar lessons, summaries, practice questions and reading comprehension for Egyptian Grade 12 students.">
   <link rel="icon" href="data:,">
+  <script>
+    /* 1. Apply the saved interface language before the page is drawn. */
+    (function () {
+      try {
+        if (localStorage.getItem('g12-lang') === 'ar') {
+          document.documentElement.lang = 'ar';
+          document.documentElement.dir = 'rtl';
+        }
+      } catch (error) { /* storage blocked: English */ }
+    })();
+
+    /* 2. Fallback: if a CSS or JavaScript file cannot be loaded (for example,
+       because a folder was not uploaded to GitHub), show a clear message
+       instead of an unstyled page that keeps saying "Loading…".
+       This must stay inline: an external file could be missing too. */
+    (function () {
+      var failed = [];
+      window.addEventListener('error', function (event) {
+        var node = event.target;
+        if (node && (node.tagName === 'LINK' || node.tagName === 'SCRIPT')) {
+          failed.push({ file: node.getAttribute('href') || node.getAttribute('src'), script: node.tagName === 'SCRIPT' });
+        }
+      }, true);
+      window.addEventListener('load', function () {
+        if (!failed.length) return;
+        var arabic = document.documentElement.lang === 'ar';
+        var files = failed.map(function (f) { return f.file; }).join(', ');
+        var box = document.createElement('div');
+        box.id = 'load-failure';
+        box.setAttribute('role', 'alert');
+        box.style.cssText = 'margin:1rem 0;padding:1rem;border:2px solid #a8261b;border-radius:8px;background:#fbeceb;color:#1d2733;font:1rem/1.6 system-ui,Tahoma,sans-serif';
+        box.textContent = arabic
+          ? 'تعذّر تحميل جزء من هذه الصفحة (' + files + '). يُرجى إعادة تحميل الصفحة. إذا كنت تدير هذا الموقع، فتأكد من رفع المجلدات css وjs وdata إلى مستودع GitHub.'
+          : 'Part of this page could not be loaded (' + files + '). Please reload the page. If you manage this website, check that the css, js and data folders are uploaded to the GitHub repository.';
+        var main = document.getElementById('main');
+        if (main) main.insertBefore(box, main.firstChild);
+        if (failed.some(function (f) { return f.script; })) {
+          [].forEach.call(document.querySelectorAll('.loading, [data-count]'), function (node) {
+            node.classList.remove('loading');
+            node.textContent = arabic ? 'تعذّر تحميل هذا المحتوى.' : 'This content could not be loaded.';
+          });
+        }
+      });
+    })();
+  </script>
   <link rel="stylesheet" href="css/style.css">
+  <script src="js/i18n-ar.js"></script>
+  <script src="js/i18n.js"></script>
 </head>
 <body>
-  <a class="skip-link" href="#main">Skip to main content</a>
+  <a class="skip-link" href="#main" data-i18n="Skip to main content">Skip to main content</a>
 
   <header class="site-header">
     <div class="container header-inner">
-      <a class="brand" href="index.html">Grade 12 English <span>Free practice for Egyptian secondary students</span></a>
-      <nav aria-label="Main">
+      <a class="brand" href="index.html"><span class="brand-name" data-i18n="Grade 12 English">Grade 12 English</span> <span class="brand-tagline" data-i18n="Free practice for Egyptian secondary students">Free practice for Egyptian secondary students</span></a>
+      <div class="header-tools">
+        <button type="button" class="lang-toggle" lang="ar" hidden>العربية</button>
+        <button type="button" class="nav-toggle" aria-expanded="false" aria-controls="site-nav" hidden>
+          <span class="nav-toggle-icon" aria-hidden="true"></span><span data-i18n="Menu">Menu</span>
+        </button>
+      </div>
+      <nav id="site-nav" class="site-nav" aria-label="Main" data-i18n-aria="Main">
         <ul class="nav-list">
-          <li><a href="index.html" aria-current="page">Home</a></li>
-          <li><a href="grammar.html">Grammar Lessons</a></li>
-          <li><a href="summaries.html">Summaries</a></li>
-          <li><a href="practice.html">Practice</a></li>
-          <li><a href="reading.html">Reading</a></li>
+          <li><a href="index.html" aria-current="page" data-i18n="Home">Home</a></li>
+          <li><a href="grammar.html" data-i18n="Grammar Lessons">Grammar Lessons</a></li>
+          <li><a href="summaries.html" data-i18n="Grammar Summaries">Grammar Summaries</a></li>
+          <li><a href="practice.html" data-i18n="Grammar Practice">Grammar Practice</a></li>
+          <li><a href="reading.html" data-i18n="Reading Comprehension">Reading Comprehension</a></li>
         </ul>
       </nav>
     </div>
   </header>
 
   <main id="main" class="container" tabindex="-1">
-    <h1>Free English practice for Grade 12</h1>
-    <p class="lead">Grammar lessons, quick revision summaries, practice questions with instant feedback, and reading comprehension — free, with no account needed.</p>
+    <p class="home-banner" lang="ar" dir="rtl"><span class="home-banner-text">سمي الله وصلي علي النبي وخش عيش حياتك</span></p>
 
-    <div id="home-status"></div>
+    <h1 data-i18n="Free English practice for Grade 12">Free English practice for Grade 12</h1>
+    <p class="lead" data-i18n="Grammar lessons, quick revision summaries, practice questions with instant feedback, and reading comprehension — free, with no account needed.">Grammar lessons, quick revision summaries, practice questions with instant feedback, and reading comprehension — free, with no account needed.</p>
 
-    <ul class="card-grid">
+    <div id="home-status">
+      <p class="loading" role="status" data-i18n="Loading content…">Loading content…</p>
+    </div>
+
+    <ul class="card-grid" data-i18n-aria="Sections" aria-label="Sections">
       <li class="card">
-        <h2>Grammar Lessons</h2>
-        <p>Explanations of grammar rules with examples.</p>
-        <p class="card-count" data-count="lessons"></p>
-        <div class="card-actions"><a class="btn" href="grammar.html">Open lessons</a></div>
+        <h2 data-i18n="Grammar Lessons">Grammar Lessons</h2>
+        <p data-i18n="Explanations of grammar rules with examples.">Explanations of grammar rules with examples.</p>
+        <p class="card-count" data-count="lessons"><span data-i18n="Loading…">Loading…</span></p>
+        <div class="card-actions"><a class="btn" href="grammar.html" data-i18n="Open lessons">Open lessons</a></div>
       </li>
       <li class="card">
-        <h2>Grammar Summaries</h2>
-        <p>Short revision notes for each grammar topic.</p>
-        <p class="card-count" data-count="summaries"></p>
-        <div class="card-actions"><a class="btn" href="summaries.html">Open summaries</a></div>
+        <h2 data-i18n="Grammar Summaries">Grammar Summaries</h2>
+        <p data-i18n="Short revision notes for each grammar topic.">Short revision notes for each grammar topic.</p>
+        <p class="card-count" data-count="summaries"><span data-i18n="Loading…">Loading…</span></p>
+        <div class="card-actions"><a class="btn" href="summaries.html" data-i18n="Open summaries">Open summaries</a></div>
       </li>
       <li class="card">
-        <h2>Grammar Practice</h2>
-        <p>Answer questions, get feedback and track your score.</p>
-        <p class="card-count" data-count="questions"></p>
-        <div class="card-actions"><a class="btn" href="practice.html">Start practising</a></div>
+        <h2 data-i18n="Grammar Practice">Grammar Practice</h2>
+        <p data-i18n="Answer questions, get feedback and track your score.">Answer questions, get feedback and track your score.</p>
+        <p class="card-count" data-count="questions"><span data-i18n="Loading…">Loading…</span></p>
+        <div class="card-actions"><a class="btn" href="practice.html" data-i18n="Start practising">Start practising</a></div>
       </li>
       <li class="card">
-        <h2>Reading Comprehension</h2>
-        <p>Read passages and answer questions about them.</p>
-        <p class="card-count" data-count="passages"></p>
-        <div class="card-actions"><a class="btn" href="reading.html">Open reading</a></div>
+        <h2 data-i18n="Reading Comprehension">Reading Comprehension</h2>
+        <p data-i18n="Read passages and answer questions about them.">Read passages and answer questions about them.</p>
+        <p class="card-count" data-count="passages"><span data-i18n="Loading…">Loading…</span></p>
+        <div class="card-actions"><a class="btn" href="reading.html" data-i18n="Open reading">Open reading</a></div>
       </li>
     </ul>
 
-    <h2>How to use this website</h2>
+    <h2 data-i18n="How to use this website">How to use this website</h2>
     <ol class="steps">
-      <li>Read a grammar lesson.</li>
-      <li>Review the short summary of the same topic.</li>
-      <li>Practise with questions and read the feedback for each answer.</li>
-      <li>Read a passage and answer the comprehension questions.</li>
+      <li data-i18n="Read a grammar lesson.">Read a grammar lesson.</li>
+      <li data-i18n="Review the short summary of the same topic.">Review the short summary of the same topic.</li>
+      <li data-i18n="Practise with questions and read the feedback for each answer.">Practise with questions and read the feedback for each answer.</li>
+      <li data-i18n="Read a passage and answer the comprehension questions.">Read a passage and answer the comprehension questions.</li>
     </ol>
   </main>
 
   <footer class="site-footer">
     <div class="container">
-      <p>A free English learning resource for Egyptian Grade 12 students.</p>
-      <p><a href="manage.html">Content manager (for teachers)</a></p>
+      <p data-i18n="A free English learning resource for Egyptian Grade 12 students.">A free English learning resource for Egyptian Grade 12 students.</p>
+      <p><a href="manage.html" data-i18n="Content manager (for teachers)">Content manager (for teachers)</a></p>
     </div>
   </footer>
 
