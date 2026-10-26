@@ -1,9 +1,7 @@
 /* Grammar Practice page: choose a unit, a topic, how many questions and how
    to answer them, then practise.
-     practice.html?unit=<unit id>         preselects a unit
-     practice.html?topic=<lesson id>      preselects a topic (and its unit)
-     practice.html?question=<question id> opens just that question (used by
-                                          "Preview" in the content manager) */
+     practice.html?unit=<unit id>     preselects a unit
+     practice.html?topic=<lesson id>  preselects a topic (and its unit) */
 (function () {
   'use strict';
 
@@ -45,14 +43,9 @@
 
     var notice = G12.listReviewNotice(content.questions);
     if (notice) root.appendChild(notice);
+    applyAddress();
     root.appendChild(setupArea);
     root.appendChild(quizArea);
-    var single = G12.param('question') ? Schema.findById(content.questions, G12.param('question')) : null;
-    if (single) {
-      startPractice([single], true);
-      return;
-    }
-    applyAddress();
     showSetup(false);
   }).catch(function (error) {
     G12.showError(root, error, { title: t('Grammar Practice') });
@@ -214,7 +207,7 @@
       settings.topic = topicSelect.value;
       settings.count = count && count.value !== 'all' ? Number(count.value) : null;
       settings.mode = mode ? mode.value : 'one';
-      if (pool(settings.unit, settings.topic).length) startPractice(null, false);
+      if (pool(settings.unit, settings.topic).length) startPractice();
     });
 
     setupArea.appendChild(form);
@@ -224,27 +217,22 @@
 
   /* ---------- Practice ---------- */
 
-  /* questions: a fixed list (one question opened with ?question=), or none
-     to pick from the chosen unit and topic. */
-  function startPractice(questions, single) {
-    var picked = questions || G12.QuizEngine.shuffle(pool(settings.unit, settings.topic), Math.random);
-    if (!questions && settings.count) picked = picked.slice(0, settings.count);
+  function startPractice() {
+    var picked = G12.QuizEngine.shuffle(pool(settings.unit, settings.topic), Math.random);
+    if (settings.count) picked = picked.slice(0, settings.count);
 
     setupArea.hidden = true;
     G12.clear(quizArea);
     quizArea.appendChild(el('p', null, [
       el('button', { type: 'button', className: 'btn btn--link', text: t('← Change practice settings'), onclick: function () { showSetup(true); } })
     ]));
-    if (single) {
-      quizArea.appendChild(el('p', { className: 'hint', text: t('Showing one question only.') }));
-    }
     var holder = el('div');
     quizArea.appendChild(holder);
     var back = [{ label: t('Change practice settings'), onClick: function () { showSetup(true); } }];
-    if (settings.mode === 'all' && !single) {
+    if (settings.mode === 'all') {
       G12.renderWorksheet(holder, picked, { label: t('Grammar practice'), title: t('Practice questions'), resultActions: back });
     } else {
-      G12.renderQuiz(holder, picked, { label: t('Grammar practice'), shuffle: !single, resultActions: back });
+      G12.renderQuiz(holder, picked, { label: t('Grammar practice'), shuffle: true, resultActions: back });
     }
     G12.focus(holder.querySelector('h2'));
   }

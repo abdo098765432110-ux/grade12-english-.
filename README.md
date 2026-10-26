@@ -10,10 +10,6 @@ reading comprehension.
   (`https://<user>.github.io/<repository>/`). All paths are relative.
 - **Starts with an empty content library.** All lessons, summaries, questions
   and passages are added by the teacher with the built-in content manager.
-- **English or Arabic interface.** The button in the header (“العربية” /
-  “English”) switches menus, buttons, headings and messages, and the page
-  direction (left-to-right or right-to-left). Lessons, questions, answers and
-  passages are never translated: they always appear exactly as written.
 
 ## Folder structure
 
@@ -29,7 +25,7 @@ grade12-english/
 ├── css/
 │   └── style.css          All styles
 ├── js/
-│   ├── i18n.js            Interface language: English/Arabic switch, direction, saved choice
+│   ├── i18n.js            Interface language: English/Arabic button, page direction, saved choice
 │   ├── i18n-ar.js         Arabic text for the interface (not for the content)
 │   ├── content-schema.js  Data format, validation rules, units and topics
 │   ├── content-store.js   Add/edit/delete/move/import logic, browser drafts
@@ -91,6 +87,23 @@ always keeps folders.
 If something is still missing, every page shows a red message naming the
 missing files.
 
+## Interface language (English / العربية)
+
+- Every page has a language button in the header: **العربية** on English
+  pages, **English** on Arabic pages. It switches the interface — menus,
+  buttons, headings, labels and messages, including the content manager —
+  and the page direction (left-to-right for English, right-to-left for
+  Arabic).
+- **Educational content is never translated.** Lessons, summaries,
+  questions, answer choices, answers, explanations and passages always
+  appear exactly as written, and each keeps its own text direction.
+- The choice is saved in the browser (`localStorage`, key `g12-lang`) and
+  applies to every page after reloading. If the browser blocks storage, the
+  site stays in English.
+- The Arabic text is in `js/i18n-ar.js`: English on the left, Arabic on the
+  right. To change a translation, edit the right-hand side and keep any
+  `{placeholders}`. Text missing there is shown in English.
+
 ## Run it on your computer
 
 Browsers block data files when a page is opened directly from disk
@@ -115,52 +128,20 @@ Open `manage.html` (also linked at the bottom of every page).
    device only). Nothing is sent anywhere.
 3. Tick **“Preview my draft on the student pages”** to see the draft on the
    real pages in your browser. Students do not see it.
-   Each item in the lists has a **Preview** link that opens its student page
-   with your draft. Items that are only in your draft are labelled
-   **“New — not published”** or **“Changed — not published”**, and the status
-   box counts the unpublished changes.
-4. **Publish** (see the steps below). Publishing is blocked while the draft
-   has errors; *Check content* lists them.
-5. **Back up** regularly with *Download backup file*. **Restore** shows what
-   the backup contains next to your current draft and asks before replacing
-   the whole draft.
-6. **Import** data files or a backup from another computer. The files are
-   checked and described first (new items, items with the same ID, items
-   *Replace* would remove); nothing changes until you choose:
-   - *Cancel* — nothing changes.
-   - *Merge* — adds new items; for items with the same ID you choose to keep
-     your current version (the default) or use the imported one. Nothing is
-     removed.
-   - *Replace* — for each type in the files, your current items are replaced
-     by the files' items. You are asked to confirm first.
-7. *Discard my draft* goes back to the published files (asks first).
-
-### Publish your changes on GitHub
-
-1. In *Import & export*, choose **Download all five files** (`units.json`,
-   `grammar-lessons.json`, `grammar-summaries.json`, `grammar-questions.json`,
-   `reading-passages.json`). The names must stay exactly like this: if your
-   browser saves `units (1).json`, rename it to `units.json`.
-2. On a computer, open your repository on GitHub and **click the `data`
-   folder**. The address must end with `/tree/main/data`.
-3. Choose **Add file → Upload files** and drag the five files onto the page.
-   In the list, each name must appear without a folder in front of it (you
-   are already inside `data`).
-4. Choose **Commit changes**. GitHub replaces the old files.
-5. After 1–2 minutes, open the site and reload with **Ctrl+F5**
-   (**Cmd+Shift+R** on a Mac). The content manager then says
-   **“Published — no unpublished changes”**.
+4. **Publish:** open *Import & export* and choose *Download all five files*.
+   Then, in your GitHub repository, **open the `data` folder first**, choose
+   **Add file → Upload files**, upload the five files (they replace the old
+   ones) and commit.
+5. **Back up** regularly with *Download backup file*. A backup (or any data
+   file) can be **imported** on any computer. *Merge* adds new items and
+   updates items with the same ID; *Replace* swaps the imported type
+   completely. Files are checked before anything changes.
 
 Notes:
 
-- **Security.** `manage.html` has no password, and an unlisted address would
-  not protect it anyway. It does not need one: anyone who opens it can only
-  change a draft in **their own** browser. Only people who can push to the
-  GitHub repository can change the published website. The site contains no
-  passwords, access tokens or keys, and it stores no student information
-  (only the draft, the preview switch and the language choice, in the
-  browser). Never put passwords or personal student information into the
-  content.
+- Anyone can open `manage.html` on the public site, but it only changes a
+  draft in **their own** browser. Only people who can push to the GitHub
+  repository can change the published website.
 - The **“A teacher has reviewed this …”** tick decides how answers are shown.
   Until it is ticked, students see answers as *suggested answers*, never as
   definitely correct, and scores are marked *provisional*.
@@ -168,18 +149,6 @@ Notes:
   browser’s site data deletes the draft, so download backups.
 
 The data format is described in [docs/CONTENT_FORMAT.md](docs/CONTENT_FORMAT.md).
-
-## Interface language
-
-- The choice is saved in the browser (`localStorage`, key `g12-lang`) and
-  applies to every page, including the content manager. Without storage (some
-  private-browsing modes) the site simply stays in English.
-- The Arabic text is in `js/i18n-ar.js`: the English text on the left, the
-  Arabic text on the right. To change a translation, edit the right-hand side
-  and keep any `{placeholders}`. Text missing from that file is shown in
-  English.
-- The home page banner is always shown in Arabic, right to left, in both
-  languages.
 
 ## Checks (need Node.js; no packages to install)
 

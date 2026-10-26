@@ -1,255 +1,113 @@
 # Project status — Grade 12 English
 
-_Last updated: 21 October 2026 (end of Phase 3, waiting for approval before any Phase 4)_
+_Last updated: 26 October 2026 (Phase 2 + the Arabic/English interface button)_
 
-Published website (the address the owner gave):
-https://abdo098765432110-ux.github.io/grade12-english-./
-It is served from the repository
-https://github.com/abdo098765432110-ux/grade12-english-.
-(the name ends with a hyphen and a full stop).
+Live site: https://abdo098765432110-ux.github.io/grade12-english/
+Repository: https://github.com/abdo098765432110-ux/grade12-english
 
 ## Summary
 
-| Phase | Status |
+| Work | Status |
 |---|---|
 | Phase 1 — student pages, quiz engine, content manager, empty content library | Done (19 Oct 2026) |
 | Phase 1.5 — audit of the live site, fallback/loading/error states, navigation | Done (20 Oct 2026) |
 | Phase 2 — data-driven content by unit and topic, answer checking, validation | Done in the project files (20 Oct 2026) |
-| Phase 3 — home banner, English/Arabic interface, content manager workflow | Done in the project files (21 Oct 2026) |
+| Addition — Arabic/English interface button | Done in the project files (26 Oct 2026) |
+
+As the owner asked, this version adds **only** the language button. The
+other Phase 3 work prepared earlier (home banner, new import/restore and
+publishing workflow in the content manager) is **not** included.
 
 The content library is still **empty**. No lessons, summaries, questions,
 answers, explanations or reading passages have been written for the site.
 All educational content will be supplied by the project owner.
 
-## Live site: working, but still the Phase 1 version
+## ⚠ The live site is still not working
 
-Checked on 21 Oct 2026. Nothing from Phase 2 or Phase 3 has been uploaded
-yet. This session can read the repositories but cannot upload to them.
+Checked on 26 Oct 2026, repository commit `38a1343`: the files are still
+**at the top level of the repository**, with no `css`, `js` or `data`
+folders. The pages load `css/style.css`, `js/…` and `data/…`, so they show
+without styles and scripts. The steps below fix this and add the language
+button in the same upload.
 
-| Repository | Address | State |
-|---|---|---|
-| `grade12-english-.` (commit `851117f`, 20 Oct 23:24) | `https://abdo098765432110-ux.github.io/grade12-english-./` | **Works**, with the `css`, `js` and `data` folders, but its pages and scripts are the **Phase 1** version: no units, no banner, no language button (`js/i18n.js` is not there). The data files are empty, so there is no content to lose. |
-| `grade12-english` (commit `38a1343`, 20 Oct 23:20) | `https://abdo098765432110-ux.github.io/grade12-english/` | Broken: every file is at the top level with no folders, so the pages load without styles and scripts. |
-| `grade12-english-` (commit `c72020c`, 20 Oct 22:28) | `https://abdo098765432110-ux.github.io/grade12-english-/` | An older test copy with folders (Phase 1). |
+## Addition: Arabic/English interface button (26 Oct 2026)
 
-**Uploading this project on top of `grade12-english-.` was simulated:**
-- a copy of the repository files was overwritten with the zip's files, the
-  same result as an upload on GitHub;
-- the copy was served at the same path, `/grade12-english-./`.
+**What changed**
+- A button in the header of every page: **العربية** on English pages,
+  **English** on Arabic pages. On phones it sits next to the Menu button.
+- Arabic: all interface text in Arabic, including the content manager and
+  its messages. The pages use `lang="ar"` and `dir="rtl"`, and the layout is
+  mirrored. English: the English text and `dir="ltr"` come back.
+- The choice is saved in the browser (`localStorage`, key `g12-lang`). It
+  applies to every page and after reloading. Nothing else is stored.
+- Educational content is not translated or changed. It is shown exactly as
+  written, with its own text direction.
+- Files:
+  - **new:** `js/i18n.js` (the button and the switching) and `js/i18n-ar.js`
+    (the Arabic interface text);
+  - **changed:** the six pages (header button, two script lines, translation
+    markers), `css/style.css` (header layout and right-to-left styles), and
+    the page scripts (interface text passed through the translator);
+  - **unchanged:** `js/content-store.js`, `js/quiz-engine.js`, all `data/`
+    files, `tools/`, file names and links.
 
-Results on that copy:
-- site check OK;
-- 73 / 73 unit tests passed;
-- 274 / 274 browser checks passed.
-
-The extra `package.json` in that repository is harmless and can stay.
-
-**Sharing the link:** many apps cut a final full stop off a link. If you
-share `…/grade12-english-.` without the slash, it can turn into
-`…/grade12-english-`, which opens the old test copy. Always share it with the
-slash at the end: `https://abdo098765432110-ux.github.io/grade12-english-./`.
-
-## Phase 3 report — what changed
-
-Files: 2 new (`js/i18n.js`, `js/i18n-ar.js`). Changed: the six HTML pages,
-`css/style.css`, all files in `js/`, the tests and the documentation. File
-names, folders, data files and web addresses are unchanged.
-
-**1. Home page banner**
-- The phrase “سمي الله وصلي علي النبي وخش عيش حياتك” appears exactly as
-  given (checked character by character), centred at the top of the home page,
-  under the navigation.
-- It is marked as Arabic and right-to-left, wraps on small screens, and is
-  the same in both interface languages. It never covers the navigation: the
-  menu sits above it and pushes it down when opened on a phone.
-
-**2. English / Arabic interface**
-- A language button in the header of every page (“العربية” on English pages,
-  “English” on Arabic pages). The choice is saved in the browser
-  (`localStorage`, key `g12-lang`) and applies to every page, including the
-  content manager. Switching reloads the page in the other language; links
-  and web addresses do not change.
-- Arabic pages use `lang="ar"` and `dir="rtl"`. The layout is mirrored with
-  logical CSS properties, and arrows such as “← previous” point the right way.
-- Translated: navigation, buttons, headings, labels, form hints, validation
-  and error messages, notices, empty states, loading and error states, score
-  summaries, confirmations, page titles, and every content manager control.
-  Counted words use the correct Arabic forms (درس واحد، درسان، 3 دروس، 11 درسًا).
-- **Not translated:** lessons, summaries, questions, options, answers,
-  explanations and passages. They are shown exactly as written, and each
-  item's text direction comes from its own text, so English content stays
-  left-to-right on Arabic pages.
-- The Arabic text lives in `js/i18n-ar.js` (English on the left, Arabic on
-  the right), so wording can be corrected without touching the code. A
-  missing translation falls back to English instead of breaking the page.
-- If the browser blocks storage, the site works in English.
-
-**3. Content manager (`manage.html`)**
-- Create, edit, delete, reorder and organise units, lessons, summaries,
-  practice questions, and passages with their questions (as before), now in
-  both languages.
-- **Draft vs published is visible everywhere:**
-  - the status box says “Draft — not published yet” or “Published — no
-    unpublished changes”, and counts new, changed and removed items;
-  - items that exist only in the draft are labelled “New — not published” or
-    “Changed — not published”;
-  - each item has a **Preview** link that opens its student page with the
-    draft (single practice questions open at `practice.html?question=<id>`).
-- **Publish:** the five data files can be downloaded only when the draft has
-  no errors. The page gives the exact GitHub steps (open the `data` folder,
-  upload the five files with exact names, commit, reload with Ctrl+F5).
-- **Import** (data files or a backup): files are checked first, with useful
-  messages for malformed JSON, wrong answer keys, duplicate IDs (also across
-  several files), missing fields and unknown file contents. If they are valid,
-  a table shows, per type, how many items are new, already in the draft, and
-  would be removed by Replace. Nothing changes until the owner chooses:
-  - **Cancel** — nothing changes;
-  - **Merge** — adds new items; for items with the same ID, keep the current
-    version (default) or use the imported one; nothing is removed;
-  - **Replace** — replaces each imported type completely, after a warning
-    that lists what will be removed.
-  The result is validated again before it is saved.
-- **Backup and restore:** one backup file with everything. Restore shows the
-  backup's date and contents next to the current draft, offers to download
-  the current draft first, and asks before replacing the whole draft.
-- Deleting asks for confirmation, as before. IDs and links between items are
-  preserved, and renames still update linked items.
-
-**4. Saving and security**
-- No server, passwords, tokens or keys anywhere in the code. The manager
-  states that it has no password, that it only changes a draft in the
-  visitor's own browser, and that only people with access to the GitHub
-  repository can publish.
-- Stored in the browser: the draft, the preview switch and the language
-  choice. No student information is stored or sent anywhere.
-- No paid services, packages or external files were added.
-
-## Phase 3 test results (21 Oct 2026)
-
-Environment: Linux, Node.js 22.22.0, Python 3.13, Playwright 1.56 with
-headless Chromium. The site was served from a `/grade12-english/` subfolder,
-the same path as on GitHub Pages. All test content is placeholder text, such
-as “Test prompt q1”. It is supplied by the tests and never written to `data/`.
+**Test results** (Linux, Node.js 22, Playwright with headless Chromium; the
+site was served from a `/grade12-english/` subfolder, as on GitHub Pages)
 
 | Test | Result |
 |---|---|
-| `node --test tests/*.test.js` (unit tests) | **73 / 73 passed** (57 before + 16 new) |
-| `python tests/e2e_test.py` (browser tests) | **274 / 274 checks passed** on two runs in a row (161 before; the new and updated checks are listed below) |
-| `node tools/check-site.js` | OK: every referenced file exists with exact case; all paths are relative |
-| `node tools/validate-content.js` | OK (empty library, version 2) |
-| Project `data/` files after the tests | Still empty (verified) |
+| `node --test tests/*.test.js` | **70 / 70 passed** (57 from Phase 2 + 13 for the language) |
+| `python tests/e2e_test.py` | **209 / 209 checks passed** on two runs (161 from Phase 2 + 48 for the language) |
+| `node tools/check-site.js` | OK |
+| `node tools/validate-content.js` | OK (empty library) |
+| Upload simulated on a copy of the repository | 209 / 209 checks passed |
 
-What the new tests check:
+The language checks cover:
+- the button on all six pages;
+- English → Arabic → English;
+- the choice kept after reloading and on every page;
+- `rtl` and `ltr`, Arabic navigation with the same links, the phone menu in
+  Arabic;
+- storage blocked;
+- accessibility checks on every Arabic page;
+- no interface text missing from the Arabic file.
 
-- **Translations (unit tests):**
-  - every interface text in the code and pages (about 660) has Arabic;
-  - placeholders match between the two languages;
-  - no leftover or untranslated entries;
-  - all Arabic plural forms;
-  - arrows reversed;
-  - English stays the default, and an unknown saved value falls back to English;
-  - content-check messages come out in Arabic.
-- **Language switch (browser):**
-  - the button on all six pages;
-  - `lang`/`dir` switching;
-  - the choice is remembered across pages and reloads;
-  - Arabic navigation with the same links;
-  - Arabic page titles;
-  - the phone menu in Arabic;
-  - switching back;
-  - storage blocked;
-  - accessibility checks on every Arabic page;
-  - no missing Arabic text reported by any page visited.
-- **Banner (browser), in both languages at 320, 375, 768 and 1280 px:**
-  - exact phrase, `dir="rtl"`, centred and first on the page;
-  - the text fits and does not overflow;
-  - below the header, with every header link and button still clickable;
-  - the opened phone menu pushes it down;
-  - no sideways scrolling.
-- **Content untouched in Arabic (browser):**
-  - lesson text, unit titles, question prompts, options and passage spacing
-    stay exactly as written and left-to-right;
-  - feedback, worksheet warnings, “not answered” and scores appear in Arabic;
-  - manager form, answer-key and import errors appear in Arabic.
-- **Content manager (browser):**
-  - the change counts and the “New/Changed — not published” labels;
-  - preview links opening the draft in a new tab;
-  - the single-question link;
-  - downloads blocked while the draft has an error.
-  - Import:
-    - the description table;
-    - Cancel;
-    - Merge into an empty draft;
-    - Merge with “keep” and with “use imported”;
-    - re-importing never duplicates;
-    - Replace warning (declining it changes nothing, then Replace);
-    - rejected files: wrong key, malformed JSON, duplicate IDs across two
-      files, empty object.
-  - Restore:
-    - a non-backup file is refused;
-    - the comparison shown before restoring;
-    - Cancel;
-    - downloading the current draft first;
-    - the confirmation, then the restore itself.
-  - Discard.
-- **Visual review** of screenshots in both languages found and fixed:
-  - the banner text was too small (an Arabic-content style overrode it);
-  - scores like “0 / 2” read backwards on Arabic pages;
-  - question numbers in the all-questions view were misaligned on Arabic
-    pages.
-  All three were re-tested.
+Placeholder test content — lesson text, unit titles, questions, answer
+choices and passage spacing — stayed exactly as written on Arabic pages, and
+the project's `data/` files were still empty after the tests. All Phase 2
+checks (lessons, summaries, practice, reading, content manager, navigation,
+error states) still pass.
 
-## Not tested / known limitations
+**Not tested:** the live site (nothing was uploaded from here), Firefox,
+Safari, real phones, and screen readers. The Arabic interface text has not
+been reviewed by a native speaker; it can be edited in `js/i18n-ar.js`.
 
-- **The live site was not tested.** The repository still has the files
-  outside their folders. This session can read the repository but cannot
-  write to it, so nothing was uploaded or deployed.
-- Tested in **headless Chromium only**: not tested in Firefox, Safari, on
-  real phones or tablets, or with a screen reader.
-- The Arabic interface text was written for this project and checked by
-  automated tests for completeness, not by a native-speaker review. It can
-  be edited in `js/i18n-ar.js`.
-- Switching language reloads the page. In the content manager, unsaved form
-  changes are protected by the browser's “Leave page?” prompt (existing
-  Phase 1 behaviour; not covered by the automated tests).
-- Downloading “all five files” relies on the browser allowing several
-  downloads; each file also has its own button.
-- Phase 1–2 limitations still apply: drafts are per browser, publishing is a
-  manual upload, there is no saved student progress, and only
-  multiple-choice questions are scored.
-
-## How to deploy Phase 3
-
-These steps update the repository behind the published address
-(`grade12-english-.`). Its folders are already correct, so the upload only
-adds and replaces files. It deletes nothing.
+## How to upload this version
 
 1. On a **computer**, unzip `grade12-english.zip` and open the
    `grade12-english` folder inside it. You should see `index.html`, `css`,
    `js`, `data` and the other items.
-2. Open https://github.com/abdo098765432110-ux/grade12-english-. and choose
+2. Open https://github.com/abdo098765432110-ux/grade12-english and choose
    **Add file → Upload files**.
 3. Select everything in the folder (Ctrl+A, or Cmd+A on a Mac) and **drag**
-   it onto the upload area. Don't use “choose your files”: it cannot upload
-   folders. If `.nojekyll` does not come along (Macs hide it), that is fine.
-4. Wait until the list has finished loading. Then check that it shows the
-   files **with** their folders, such as `css/style.css`, `js/i18n.js` and
-   `js/i18n-ar.js`. If it shows only `style.css`, close the page without
-   committing and drag again.
-5. Choose **Commit changes**. Files with the same name are replaced; nothing
-   else is removed.
-6. Wait 1–2 minutes. Open
-   https://abdo098765432110-ux.github.io/grade12-english-./ and reload with
-   **Ctrl+F5** (Cmd+Shift+R on a Mac). Expected:
-   - the dark-blue banner with “سمي الله وصلي علي النبي وخش عيش حياتك”;
-   - the “العربية” button in the header;
-   - “No content added yet”.
-7. Optional, your decision: the `grade12-english` and `grade12-english-`
-   repositories are not needed by the published site. Keep them, or delete
-   them in each repository's Settings, so that only one address exists.
-8. Later, to publish content: in the content manager, follow *Import &
-   export* → *Publish your changes* (upload the five files inside the `data`
-   folder of `grade12-english-.`).
+   it onto the upload area. Don't use “choose your files”, because it cannot
+   upload folders.
+4. Wait until the list finishes. It must show names **with** their folders,
+   such as `css/style.css`, `js/i18n.js` and `data/units.json`. If you see
+   only `style.css`, close the page without committing and drag again (or
+   use GitHub Desktop).
+5. Choose **Commit changes**. Files with the same name (for example
+   `index.html`) are replaced; nothing is deleted.
+6. Wait 1–2 minutes. Open https://abdo098765432110-ux.github.io/grade12-english/
+   and reload with **Ctrl+F5** (Cmd+Shift+R on a Mac). Expected: a styled
+   page with the **العربية** button at the top. Click it: the page turns
+   Arabic and right-to-left. Reload: it stays Arabic. Click **English** to
+   switch back.
+7. Optional: the old loose copies at the top level (`style.css`,
+   `common.js`, `grammar-lessons.json`, the uploaded zip, `download`, and so
+   on) are no longer used. The site works with them in place; deleting them
+   only tidies the repository. All the data files are empty, so no content
+   is lost either way.
 
 ## Phase 2 report (20 Oct 2026) — implemented features
 
@@ -399,3 +257,21 @@ New tests in Phase 2:
 - **Visual review** of screenshots found three layout issues, all fixed and
   re-tested: extra space above the question list, single cards stretching
   the full width, and extra space at the top of the practice panel.
+
+### Phase 2 known limitations (still apply)
+
+- Text formatting covers paragraphs, line breaks and spacing. Bold or
+  italic text inside content is not supported.
+- Only multiple-choice questions are scored; written answers are compared by
+  the student.
+- Drafts are per browser; publishing is a manual upload; there is no saved
+  student progress; the wording has not been checked against the official
+  syllabus.
+
+## Next steps
+
+1. Upload this version (see “How to upload this version” above) and check
+   the live site with Ctrl+F5.
+2. Add units first, then lessons (topics), summaries, questions and
+   passages, with the content manager or JSON files that follow
+   docs/CONTENT_FORMAT.md.

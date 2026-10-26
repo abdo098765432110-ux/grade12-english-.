@@ -118,109 +118,11 @@
       });
     })).then(function () {
       publishedFingerprint = Store.fingerprint(published);
-      indexPublished();
     });
   }
 
   function changed() {
     return Store.fingerprint(library) !== publishedFingerprint;
-  }
-
-  /* ---------- Draft compared with the published website ----------
-     Each item is compared with the published item that has the same ID, so
-     the lists can label it "New — not published" or "Changed — not published". */
-
-  /* JSON with object keys in a fixed order, so field order never matters. */
-  function stable(value) {
-    if (Array.isArray(value)) return '[' + value.map(stable).join(',') + ']';
-    if (value && typeof value === 'object') {
-      return '{' + Object.keys(value).sort().map(function (key) {
-        return JSON.stringify(key) + ':' + stable(value[key]);
-      }).join(',') + '}';
-    }
-    return JSON.stringify(value);
-  }
-
-  var publishedIndex = {};
-  function indexPublished() {
-    var normal = Store.normalizeLibrary(published);
-    Schema.COLLECTION_KEYS.forEach(function (key) {
-      publishedIndex[key] = {};
-      normal[key].forEach(function (item) {
-        if (item && hasText(item.id)) publishedIndex[key][item.id] = item;
-      });
-    });
-  }
-
-  /* 'new', 'changed' or null (same as the website). */
-  function publishState(key, item) {
-    var before = publishedIndex[key] && publishedIndex[key][item.id];
-    if (!before) return 'new';
-    return stable(before) === stable(item) ? null : 'changed';
-  }
-
-  function passageQuestionState(passage, question) {
-    var before = publishedIndex.passages && publishedIndex.passages[passage.id];
-    var old = before && Array.isArray(before.questions) ? G12.byId(before.questions, question.id) : null;
-    if (!old) return 'new';
-    return stable(old) === stable(question) ? null : 'changed';
-  }
-
-  function changeCounts() {
-    var counts = { added: 0, changed: 0, removed: 0 };
-    Schema.COLLECTION_KEYS.forEach(function (key) {
-      var ids = {};
-      library[key].forEach(function (item) {
-        if (!item || !hasText(item.id)) return;
-        ids[item.id] = true;
-        var state = publishState(key, item);
-        if (state === 'new') counts.added += 1;
-        else if (state === 'changed') counts.changed += 1;
-      });
-      Object.keys(publishedIndex[key] || {}).forEach(function (id) {
-        if (!ids[id]) counts.removed += 1;
-      });
-    });
-    return counts;
-  }
-
-  function stateBadge(state) {
-    if (!state) return null;
-    return el('li', {
-      className: 'badge badge--draft',
-      text: state === 'new' ? t('New — not published') : t('Changed — not published')
-    });
-  }
-
-  /* Where to see an item on the student pages (with the draft preview on). */
-  function previewHref(key, item, passage) {
-    var id = encodeURIComponent(item.id);
-    switch (key) {
-      case 'units': return 'grammar.html?unit=' + id;
-      case 'lessons': return 'grammar.html?topic=' + id;
-      case 'summaries': return hasText(item.topicId) ? 'summaries.html?topic=' + encodeURIComponent(item.topicId) : 'summaries.html#' + id;
-      case 'questions': return passage ? 'reading.html?passage=' + encodeURIComponent(passage.id) : 'practice.html?question=' + id;
-      case 'passages': return 'reading.html?passage=' + id;
-    }
-    return 'index.html';
-  }
-
-  /* Preview link: turns the draft preview on, then opens the page in a new tab. */
-  function previewLink(href, ariaLabel) {
-    if (!storage) return null;
-    return el('a', {
-      className: 'btn btn--small btn--secondary',
-      href: href,
-      target: '_blank',
-      rel: 'noopener',
-      text: t('Preview'),
-      'aria-label': ariaLabel,
-      'data-action': 'preview',
-      onclick: function () {
-        Store.setPreview(storage, true);
-        renderStatus();
-      }
-    });
   }
 
   /* ---------- Saving ---------- */
@@ -256,8 +158,7 @@
     root.appendChild(el('div', { className: 'notice notice--info' }, [
       el('p', null, [el('strong', { text: t('How saving works:') + ' ' }), G12.tNodes(
         'your changes are saved automatically as a draft in this browser, on this device only. Students see them after you publish: open {link}, download the data files and upload them to the data folder of your GitHub repository.',
-        null, { link: el('a', { href: '#tools', text: t('Import & export') }) })]),
-      el('p', null, [el('strong', { text: t('Security:') + ' ' }), t('this page has no password, and it does not need one. Anyone who opens it can only change a draft in their own browser. The website changes only when someone with access to your GitHub repository uploads new files. Never put passwords or personal student information into the content.')])
+        null, { link: el('a', { href: '#tools', text: t('Import & export') }) })])
     ]));
     ui.status = el('div', { className: 'status-bar', role: 'region', 'aria-label': t('Draft status') });
     ui.nav = el('nav', { className: 'manager-nav', 'aria-label': t('Content types') });
@@ -288,13 +189,11 @@
         '(for example, in private browsing). Your changes will be lost when you close this page, so download a backup often from {link}.',
         null, { link: el('a', { href: '#tools', text: t('Import & export') }) })]));
     } else if (changed()) {
-      var counts = changeCounts();
-      box.appendChild(el('p', null, [el('strong', { text: t('Draft — not published yet.') + ' ' }), G12.tNodes(
+      box.appendChild(el('p', null, [el('strong', { text: t('You have unpublished changes.') + ' ' }), G12.tNodes(
         savedAt
-          ? 'Your changes are saved in this browser (last saved {time}). Students cannot see them until you publish them from {link}.'
-          : 'Your changes are saved in this browser. Students cannot see them until you publish them from {link}.',
+          ? 'They are saved in this browser (last saved {time}). Students cannot see them until you publish them from {link}.'
+          : 'They are saved in this browser. Students cannot see them until you publish them from {link}.',
         { time: formatTime(savedAt) }, { link: el('a', { href: '#tools', text: t('Import & export') }) })]));
-      box.appendChild(el('p', { className: 'change-summary', text: t('Unpublished changes: {added} new, {changed} changed, {removed} removed.', counts) }));
       if (baseline && baseline !== publishedFingerprint) {
         box.appendChild(el('div', { className: 'notice notice--demo', role: 'note' }, [
           el('p', null, [el('strong', { text: t('The published files have changed since you started this draft.') + ' ' }), G12.tNodes(
@@ -303,7 +202,7 @@
         ]));
       }
     } else {
-      box.appendChild(el('p', { text: t('Published — no unpublished changes: everything here matches the files on the website.') }));
+      box.appendChild(el('p', { text: t('No unpublished changes: everything here matches the published files.') }));
     }
 
     var toggle = el('input', { type: 'checkbox', id: 'preview-toggle', checked: Store.isPreviewOn(storage), disabled: !storage });
@@ -740,9 +639,6 @@
         text: t('Edit'),
         'aria-label': t('Edit {kind} “{name}”', names)
       })];
-      if (opts.previewHref) {
-        actions.push(previewLink(opts.previewHref(item), t('Preview {kind} “{name}” on the website (opens in a new tab)', names)));
-      }
       if (opts.onMove) {
         actions.push(smallButton(t('Move up'), t('Move {kind} “{name}” up', names), function () { opts.onMove(item, -1); },
           { disabled: position === 0, action: 'up', id: item.id }));
@@ -752,16 +648,11 @@
       actions.push(smallButton(t('Delete'), t('Delete {kind} “{name}”', names), function () { opts.onDelete(item); },
         { danger: true, action: 'delete', id: item.id }));
 
-      var badges = G12.badges(opts.reviewable === false ? { reviewStatus: 'reviewed' } : item);
-      if (opts.reviewable === false) G12.clear(badges);
-      var state = opts.state ? stateBadge(opts.state(item)) : null;
-      if (state) badges.appendChild(state);
-
-      list.appendChild(el('li', { className: 'manager-row', 'data-row': item.id }, [
+      list.appendChild(el('li', { className: 'manager-row' }, [
         el('div', { className: 'manager-row-main' }, [
           el('p', { className: 'manager-row-title', dir: 'auto', text: info.title }),
           el('p', { className: 'manager-row-meta', dir: 'auto', text: info.meta }),
-          badges.childNodes.length ? badges : null
+          G12.badges(item)
         ]),
         el('div', { className: 'row-actions' }, actions)
       ]));
@@ -829,9 +720,6 @@
         kindLabel: type.singular,
         describe: function (item) { return rowDetails(key, item); },
         editHref: function (item) { return '#' + key + '/edit/' + encodeURIComponent(item.id); },
-        previewHref: function (item) { return previewHref(key, item); },
-        state: function (item) { return publishState(key, item); },
-        reviewable: key !== 'units',
         onMove: filtering ? null : function (item, delta) {
           commit(Store.moveItem(library, key, item.id, delta), null);
           focusMoved(item.id, delta);
@@ -898,9 +786,6 @@
     }
     if (key === 'passages' && Array.isArray(item.questions) && item.questions.length) {
       message += '\n\n' + t('Its {questions} will be deleted too.', { questions: G12.plural(item.questions.length, 'question') });
-    }
-    if (publishedIndex[key] && publishedIndex[key][item.id]) {
-      message += '\n\n' + t('It stays on the website until you publish your changes.');
     }
     if (!window.confirm(message + '\n\n' + t('This cannot be undone.'))) return;
     commit(Store.deleteItem(library, key, item.id), t('Deleted the {kind} “{name}”.', names));
@@ -1694,8 +1579,6 @@
         return { title: item.prompt || item.id, meta: meta.join(' · ') };
       },
       editHref: function (item) { return '#' + base + '/questions/edit/' + encodeURIComponent(item.id); },
-      previewHref: function (item) { return previewHref('questions', item, passage); },
-      state: function (item) { return passageQuestionState(passage, item); },
       onMove: function (item, delta) {
         var moved = updateQuestions(function (list) {
           var from = list.findIndex(function (q) { return q.id === item.id; });
@@ -1720,14 +1603,7 @@
     }));
   }
 
-  /* ---------- Import & export ----------
-     Publish:  download the five data files (blocked while there are errors)
-               and replace the files in the GitHub repository's data folder.
-     Check:    every problem in the draft.
-     Backup:   one file with everything; Restore replaces the whole draft.
-     Import:   files are checked and described first; then the owner chooses
-               Cancel, Merge (keep or update existing items) or Replace.
-     Discard:  go back to the published files. */
+  /* ---------- Import & export ---------- */
 
   function download(fileName, text) {
     var blob = new Blob([text], { type: 'application/json' });
@@ -1743,65 +1619,23 @@
     download(Schema.COLLECTIONS[key].fileName, Schema.toJSON(Store.fileData(library, key)));
   }
 
-  function downloadBackup() {
-    var date = new Date().toISOString().slice(0, 10);
-    download('grade12-english-backup-' + date + '.json', Schema.toJSON(Store.backupData(library)));
-  }
-
+  /* Messages are interface sentences, so they follow the page direction. */
   function reportList(messages) {
     return el('ul', { className: 'report-list' }, messages.map(function (message) {
       return el('li', { text: message });
     }));
   }
 
-  function toolSection(id, title, children) {
-    return el('section', { className: 'tool-section', id: id, 'aria-labelledby': id + '-heading' },
-      [el('h3', { id: id + '-heading', text: title })].concat(children));
-  }
-
-  /* Reads the chosen .json files. Resolves to [{ name, data }] or rejects
-     with a list of readable problems. */
-  function readJsonFiles(files) {
-    return Promise.all(files.map(function (file) {
-      return file.text().then(function (text) {
-        try {
-          return { name: file.name, data: JSON.parse(text) };
-        } catch (error) {
-          return { name: file.name, problem: t('{file}: is not valid JSON ({reason}).', { file: file.name, reason: error.message }) };
-        }
-      });
-    }));
-  }
-
-  function errorBox(title, problems) {
-    return el('div', { className: 'error-summary', role: 'alert', tabindex: '-1' }, [
-      el('h4', { text: title }),
-      problems && problems.length ? reportList(problems) : null
-    ]);
-  }
-
-  function countsLine(lib) {
-    return t('{units}, {lessons}, {summaries}, {questions} and {passages}.', {
-      units: G12.plural(lib.units.length, 'unit'),
-      lessons: G12.plural(lib.lessons.length, 'lesson'),
-      summaries: G12.plural(lib.summaries.length, 'summary', 'summaries'),
-      questions: G12.plural(lib.questions.length, 'grammar question'),
-      passages: G12.plural(lib.passages.length, 'reading passage')
-    });
-  }
-
   function renderTools() {
     ui.view.appendChild(el('h2', { tabindex: '-1', text: t('Import & export') }));
     var check = Schema.validateLibrary(library);
-    var blocked = check.errors.length > 0;
 
-    /* ----- Publish ----- */
+    /* Publish */
     var publishButtons = Schema.COLLECTION_KEYS.map(function (key) {
       var info = Schema.COLLECTIONS[key];
       return el('button', {
         type: 'button',
         className: 'btn btn--secondary',
-        disabled: blocked,
         text: t('Download {file} ({count})', { file: info.fileName, count: library[key].length }),
         onclick: function () {
           downloadCollection(key);
@@ -1812,7 +1646,6 @@
     publishButtons.unshift(el('button', {
       type: 'button',
       className: 'btn',
-      disabled: blocked,
       text: t('Download all five files'),
       onclick: function () {
         Schema.COLLECTION_KEYS.forEach(function (key, i) {
@@ -1821,27 +1654,31 @@
         showMessage(t('Downloading the five data files. If your browser asks, allow it to download multiple files.'));
       }
     }));
-    var fileNames = Schema.COLLECTION_KEYS.map(function (key) { return Schema.COLLECTIONS[key].fileName; });
-    ui.view.appendChild(toolSection('publish', t('Publish your changes'), [
-      blocked ? el('div', { className: 'notice notice--error', role: 'alert' }, [
-        el('p', null, [el('strong', { text: t('Publishing is blocked until the errors are fixed.') + ' ' }),
-          t('{errors} found. The list is in “Check content” below. Fix them, then come back here.', { errors: G12.plural(check.errors.length, 'error') })])
-      ]) : null,
-      el('p', { text: t('Your draft lives only in this browser. To put it on the website, replace the data files in your GitHub repository:') }),
-      el('ol', { className: 'steps publish-steps' }, [
-        el('li', { text: t('Download the five data files with the button below. Their names must stay exactly: {files}. If your browser adds a number, such as “units (1).json”, rename the file before uploading.', { files: fileNames.join(', ') }) }),
-        el('li', { text: t('On a computer, open your repository on GitHub and click the data folder. The address in the browser must end with /tree/main/data. If there is no data folder, the website folders were never uploaded — follow “Publish on GitHub Pages” in README.md first.') }),
-        el('li', { text: t('Inside the data folder, choose “Add file” → “Upload files”, and drag the five downloaded files onto the page. Check that each name in the list starts without a folder name and matches exactly.') }),
-        el('li', { text: t('Choose “Commit changes”. GitHub replaces the old files.') }),
-        el('li', { text: t('Wait 1–2 minutes, then open the website and reload it with Ctrl+F5 (Cmd+Shift+R on a Mac). Open this manager again: the status should say “Published — no unpublished changes”.') })
+    ui.view.appendChild(el('section', { className: 'tool-section', 'aria-labelledby': 'publish-heading' }, [
+      el('h3', { id: 'publish-heading', text: t('Publish your changes') }),
+      el('ol', { className: 'steps' }, [
+        el('li', { text: t('Download the five data files below.') }),
+        el('li', { text: t('In your GitHub repository, open the data folder (not the top level), choose “Add file” → “Upload files”, and upload the files to replace the old ones. Then choose “Commit changes”.') }),
+        el('li', { text: t('GitHub Pages updates the website, usually within a few minutes. Reload the website to check.') })
       ]),
-      el('p', { className: 'hint', text: t('Nothing is uploaded automatically: this website has no server, password or access key, so only you can publish, through GitHub.') }),
+      check.errors.length ? el('div', { className: 'notice notice--error', role: 'note' }, [
+        el('p', { text: t('Some content has errors (see “Check content” below). Items with errors are not shown to students until they are fixed.') })
+      ]) : null,
       el('div', { className: 'actions' }, publishButtons)
     ]));
 
-    /* ----- Check ----- */
-    ui.view.appendChild(toolSection('check', t('Check content'), [
-      el('p', { text: countsLine(library) }),
+    /* Check */
+    ui.view.appendChild(el('section', { className: 'tool-section', 'aria-labelledby': 'check-heading' }, [
+      el('h3', { id: 'check-heading', text: t('Check content') }),
+      el('p', {
+        text: t('{units}, {lessons}, {summaries}, {questions} and {passages}.', {
+          units: G12.plural(library.units.length, 'unit'),
+          lessons: G12.plural(library.lessons.length, 'lesson'),
+          summaries: G12.plural(library.summaries.length, 'summary', 'summaries'),
+          questions: G12.plural(library.questions.length, 'grammar question'),
+          passages: G12.plural(library.passages.length, 'reading passage')
+        })
+      }),
       check.errors.length
         ? el('div', null, [el('p', null, [el('strong', { text: t('{errors} found:', { errors: G12.plural(check.errors.length, 'error') }) })]), reportList(check.errors)])
         : el('p', { text: t('No errors found.') }),
@@ -1850,42 +1687,27 @@
         : null
     ]));
 
-    /* ----- Backup and restore ----- */
-    var restoreInput = el('input', { type: 'file', id: 'restore-file', accept: '.json,application/json' });
-    describe(restoreInput, 'restore-file-hint');
-    var restoreResult = el('div', { id: 'restore-result' });
-    var restoreForm = el('form', { novalidate: true }, [
-      el('div', { className: 'form-row' }, [
-        el('label', { for: 'restore-file', text: t('Backup file to restore') }),
-        el('p', { className: 'hint', id: 'restore-file-hint', text: t('A file made with “Download backup file”, named like grade12-english-backup-2026-01-31.json.') }),
-        restoreInput
-      ]),
-      el('div', { className: 'actions' }, [el('button', { type: 'submit', className: 'btn btn--secondary', text: t('Check backup') })]),
-      restoreResult
-    ]);
-    restoreForm.addEventListener('submit', function (event) {
-      event.preventDefault();
-      checkRestore(Array.prototype.slice.call(restoreInput.files || []), restoreResult);
-    });
-    ui.view.appendChild(toolSection('backup', t('Backup and restore'), [
-      el('p', { text: t('A backup is one file with all your content: units, lessons, summaries, questions and passages. Download one regularly and keep it somewhere safe. You can restore it later on any computer.') }),
+    /* Backup */
+    ui.view.appendChild(el('section', { className: 'tool-section', 'aria-labelledby': 'backup-heading' }, [
+      el('h3', { id: 'backup-heading', text: t('Backup') }),
+      el('p', { text: t('Download all your content as one file. Keep it somewhere safe, or use it to move your draft to another computer (import it there).') }),
       el('div', { className: 'actions' }, [el('button', {
         type: 'button',
         className: 'btn btn--secondary',
         text: t('Download backup file'),
         onclick: function () {
-          downloadBackup();
+          var date = new Date().toISOString().slice(0, 10);
+          download('grade12-english-backup-' + date + '.json', Schema.toJSON(Store.backupData(library)));
           showMessage(t('Backup downloaded.'));
         }
-      })]),
-      el('h4', { text: t('Restore a backup') }),
-      el('p', { text: t('Restoring replaces your whole draft with the backup. You will see what the backup contains before anything changes.') }),
-      restoreForm
+      })])
     ]));
 
-    /* ----- Import ----- */
+    /* Import */
     var fileInput = el('input', { type: 'file', id: 'import-files', accept: '.json,application/json', multiple: true });
     describe(fileInput, 'import-files-hint');
+    var modeMerge = el('input', { type: 'radio', name: 'import-mode', id: 'import-merge', value: 'merge', checked: true });
+    var modeReplace = el('input', { type: 'radio', name: 'import-mode', id: 'import-replace', value: 'replace' });
     var result = el('div', { id: 'import-result' });
     var importForm = el('form', { novalidate: true }, [
       el('div', { className: 'form-row' }, [
@@ -1896,15 +1718,21 @@
         }),
         fileInput
       ]),
-      el('div', { className: 'actions' }, [el('button', { type: 'submit', className: 'btn', text: t('Check files') })]),
+      el('fieldset', { className: 'form-row' }, [
+        el('legend', { text: t('How to import') }),
+        el('div', { className: 'checkbox-row' }, [el('label', { for: 'import-merge' }, [modeMerge, t('Merge: add new items and update items with the same ID (recommended)')])]),
+        el('div', { className: 'checkbox-row' }, [el('label', { for: 'import-replace' }, [modeReplace, t('Replace: remove the existing items of each imported type first')])])
+      ]),
+      el('div', { className: 'actions' }, [el('button', { type: 'submit', className: 'btn', text: t('Import') })]),
       result
     ]);
     importForm.addEventListener('submit', function (event) {
       event.preventDefault();
-      checkImport(Array.prototype.slice.call(fileInput.files || []), result);
+      runImport(Array.prototype.slice.call(fileInput.files || []), modeReplace.checked ? 'replace' : 'merge', result);
     });
-    ui.view.appendChild(toolSection('import', t('Import'), [
-      el('p', { text: t('Files are checked first and nothing changes until you choose what to do: Cancel, Merge or Replace.') }),
+    ui.view.appendChild(el('section', { className: 'tool-section', 'aria-labelledby': 'import-heading' }, [
+      el('h3', { id: 'import-heading', text: t('Import') }),
+      el('p', { text: t('Imported files are checked first. If anything is wrong, nothing is changed.') }),
       importForm
     ]));
     if (importReport) {
@@ -1912,8 +1740,10 @@
       importReport = null;
     }
 
-    /* ----- Discard ----- */
-    var discard = toolSection('discard', t('Discard my draft'), []);
+    /* Discard */
+    var discard = el('section', { className: 'tool-section', 'aria-labelledby': 'discard-heading' }, [
+      el('h3', { id: 'discard-heading', text: t('Discard my draft') })
+    ]);
     if (changed() && storage) {
       discard.appendChild(el('p', { text: t('Delete all unpublished changes in this browser and go back to the published files. Download a backup first if you might need your changes later.') }));
       discard.appendChild(el('div', { className: 'actions' }, [el('button', {
@@ -1937,225 +1767,78 @@
     ui.view.appendChild(discard);
   }
 
-  /* ----- Restore ----- */
-
-  function checkRestore(files, result) {
+  function runImport(files, mode, result) {
     G12.clear(result);
     if (!files.length) {
-      result.appendChild(errorBox(t('Choose a backup file first.')));
+      result.appendChild(el('div', { className: 'error-summary', role: 'alert' }, [el('p', { text: t('Choose one or more .json files first.') })]));
       return;
     }
-    readJsonFiles(files.slice(0, 1)).then(function (loaded) {
-      var file = loaded[0];
-      if (file.problem) {
-        result.appendChild(errorBox(t('Nothing was restored.'), [file.problem]));
-        G12.focus(result.firstChild);
-        return;
-      }
-      var backup = Store.readBackup(file.data);
-      if (!backup) {
-        result.appendChild(errorBox(t('This is not a backup file. To add content from a single data file, use “Import” below.')));
-        G12.focus(result.firstChild);
-        return;
-      }
-      var report = Schema.validateLibrary(backup.library);
-      if (report.errors.length) {
-        result.appendChild(errorBox(t('Nothing was restored. The backup has these problems:'), report.errors));
-        G12.focus(result.firstChild);
-        return;
-      }
-      var panel = el('div', { className: 'notice notice--demo choice-panel', role: 'region', 'aria-label': t('Restore a backup'), tabindex: '-1' }, [
-        el('h4', { text: t('Restore “{file}”?', { file: file.name }) }),
-        backup.exportedAt ? el('p', { text: t('Backup made on {time}.', { time: formatTime(backup.exportedAt) }) }) : null,
-        el('p', null, [el('strong', { text: t('The backup contains:') + ' ' }), countsLine(backup.library)]),
-        el('p', null, [el('strong', { text: t('Your current draft contains:') + ' ' }), countsLine(library)]),
-        el('p', { text: t('Restoring replaces everything in your draft with the backup. Anything in your draft that is not in the backup will be lost.') }),
-        el('div', { className: 'actions' }, [
-          el('button', { type: 'button', className: 'btn btn--secondary', text: t('Cancel'), onclick: function () {
-            G12.clear(result);
-            showMessage(t('Restore cancelled. Nothing was changed.'));
-          } }),
-          el('button', { type: 'button', className: 'btn btn--secondary', text: t('Download a backup of my current draft first'), onclick: function () {
-            downloadBackup();
-            showMessage(t('Backup downloaded.'));
-          } }),
-          el('button', { type: 'button', className: 'btn btn--danger', text: t('Restore this backup'), onclick: function () {
-            if (!window.confirm(t('Replace your whole draft with this backup?') + '\n\n' + t('This cannot be undone.'))) return;
-            importReport = el('div', { className: 'notice notice--info', role: 'status' }, [
-              el('p', null, [el('strong', { text: t('Backup restored.') + ' ' }), t('Your draft now matches the backup. Remember to publish it.')])
-            ]);
-            commit(backup.library, t('Backup restored.'));
-            afterRender = function () { G12.focus(document.getElementById('import-result')); };
-            go('tools');
-          } })
-        ])
-      ]);
-      result.appendChild(panel);
-      G12.focus(panel);
-    }).catch(function (error) {
-      result.appendChild(errorBox(t('The file could not be read: {reason}', { reason: error.message })));
-    });
-  }
 
-  /* ----- Import ----- */
-
-  function checkImport(files, result) {
-    G12.clear(result);
-    if (!files.length) {
-      result.appendChild(errorBox(t('Choose one or more .json files first.')));
-      return;
-    }
-    readJsonFiles(files).then(function (loaded) {
+    Promise.all(files.map(function (file) {
+      return file.text().then(function (text) { return { name: file.name, text: text }; });
+    })).then(function (loaded) {
       var problems = [];
-      var notes = [];
       var combined = {};
       loaded.forEach(function (file) {
-        if (file.problem) {
-          problems.push(file.problem);
+        var data;
+        try {
+          data = JSON.parse(file.text);
+        } catch (error) {
+          problems.push(t('{file}: is not valid JSON ({reason}).', { file: file.name, reason: error.message }));
           return;
         }
-        var read = Schema.readImport(file.data, file.name);
+        var read = Schema.readImport(data, file.name);
         problems = problems.concat(read.report.errors);
-        notes = notes.concat(read.report.warnings);
         if (read.report.errors.length) return;
         Object.keys(read.collections).forEach(function (key) {
           combined[key] = (combined[key] || []).concat(read.collections[key]);
         });
       });
 
+      var applied = null;
+      var warnings = [];
       if (!problems.length) {
-        /* The imported content must be valid whichever choice is made. */
-        ['merge', 'replace'].forEach(function (mode) {
-          newErrors(Store.applyImport(library, combined, mode, { keepExisting: false }).library).forEach(function (message) {
-            if (problems.indexOf(message) === -1) problems.push(message);
-          });
-        });
+        applied = Store.applyImport(library, combined, mode);
+        var check = Schema.validateLibrary(applied.library);
+        problems = check.errors;
+        warnings = check.warnings;
       }
 
       if (problems.length) {
-        result.appendChild(errorBox(t('Nothing was imported. Please fix these problems in the file and try again:'), problems));
+        result.appendChild(el('div', { className: 'error-summary', role: 'alert', tabindex: '-1' }, [
+          el('h4', { text: t('Nothing was imported. Please fix these problems in the file and try again:') }),
+          reportList(problems)
+        ]));
         G12.focus(result.firstChild);
         return;
       }
-      showImportChoices(combined, notes, result);
-    }).catch(function (error) {
-      result.appendChild(errorBox(t('The file could not be read: {reason}', { reason: error.message })));
-    });
-  }
 
-  /* Errors that an import would add. Problems already in the draft are not
-     blamed on the imported files (they block publishing anyway). */
-  function newErrors(nextLibrary) {
-    var before = Schema.validateLibrary(library).errors;
-    return Schema.validateLibrary(nextLibrary).errors.filter(function (message) {
-      return before.indexOf(message) === -1;
-    });
-  }
-
-  function showImportChoices(combined, notes, result) {
-    var analysis = Store.analyzeImport(library, combined);
-    var keys = Schema.COLLECTION_KEYS.filter(function (key) { return analysis[key]; });
-    var totalExisting = keys.reduce(function (sum, key) { return sum + analysis[key].existing.length; }, 0);
-    var totalRemoved = keys.reduce(function (sum, key) { return sum + analysis[key].removedByReplace.length; }, 0);
-
-    var table = el('div', { className: 'table-wrap', tabindex: '0', role: 'region', 'aria-label': t('What the files contain') }, [
-      el('table', null, [
-        el('thead', null, [el('tr', null, [
-          t('Type'), t('In the files'), t('New'), t('Already in your draft (same ID)'), t('Removed by “Replace”')
-        ].map(function (heading) { return el('th', { scope: 'col', text: heading }); }))]),
-        el('tbody', null, keys.map(function (key) {
-          var info = analysis[key];
-          return el('tr', null, [
-            el('th', { scope: 'row', text: TYPES[key].title }),
-            el('td', { text: String(info.incoming) }),
-            el('td', { text: String(info.added.length) }),
-            el('td', { text: String(info.existing.length) }),
-            el('td', { text: String(info.removedByReplace.length) })
-          ]);
-        }))
-      ])
-    ]);
-
-    var keepMine = el('input', { type: 'radio', name: 'import-existing', id: 'import-keep', value: 'keep', checked: true });
-    var useTheirs = el('input', { type: 'radio', name: 'import-existing', id: 'import-update', value: 'update' });
-    var conflictBlock = null;
-    if (totalExisting) {
-      var examples = [];
-      keys.forEach(function (key) {
-        analysis[key].existing.forEach(function (id) {
-          var item = G12.byId(library[key], id);
-          examples.push(t('{type}: {name}', { type: TYPES[key].title, name: rowDetails(key, item).title }));
-        });
-      });
-      conflictBlock = el('fieldset', { className: 'form-row' }, [
-        el('legend', { text: t('{items} in the files already exist in your draft (same ID). With “Merge”:', { items: G12.plural(totalExisting, 'item') }) }),
-        reportList(examples.slice(0, 8).concat(examples.length > 8 ? [t('… and {n} more', { n: examples.length - 8 })] : [])),
-        el('div', { className: 'checkbox-row' }, [el('label', { for: 'import-keep' }, [keepMine, t('Keep my current versions (the imported copies are ignored)')])]),
-        el('div', { className: 'checkbox-row' }, [el('label', { for: 'import-update' }, [useTheirs, t('Replace them with the imported versions')])])
-      ]);
-    }
-
-    function apply(mode) {
-      var keepExisting = mode === 'merge' && keepMine.checked;
+      var keys = Object.keys(applied.summary);
       if (mode === 'replace') {
-        var lost = keys.filter(function (key) { return analysis[key].current > 0; }).map(function (key) {
-          return t('{type}: {removed} removed and {kept} replaced', {
-            type: TYPES[key].title,
-            removed: analysis[key].removedByReplace.length,
-            kept: analysis[key].existing.length
-          });
+        var affected = keys.filter(function (key) { return library[key].length > 0; }).map(function (key) {
+          return t('{title} ({items})', { title: TYPES[key].title, items: G12.plural(library[key].length, 'item') });
         });
-        if (lost.length && !window.confirm(t('Replace your current content with the imported files?') + '\n\n' + lost.join('\n') + '\n\n' + t('This cannot be undone.'))) {
+        if (affected.length && !window.confirm(t('Replace your current {items} with the imported content?', { items: affected.join(G12.lang === 'ar' ? '، ' : ', ') }) + '\n\n' + t('This cannot be undone.'))) {
           return;
         }
       }
-      var applied = Store.applyImport(library, combined, mode, { keepExisting: keepExisting });
-      var check = Schema.validateLibrary(applied.library);
-      var added = newErrors(applied.library);
-      if (added.length) {
-        G12.clear(result);
-        result.appendChild(errorBox(t('Nothing was imported. Please fix these problems in the file and try again:'), added));
-        G12.focus(result.firstChild);
-        return;
-      }
+
       var lines = keys.map(function (key) {
         var stats = applied.summary[key];
         if (mode === 'replace') return t('{type}: replaced ({removed} removed, {added} imported).', { type: TYPES[key].title, removed: stats.removed, added: stats.added });
-        return t('{type}: {added} added, {updated} updated, {kept} kept unchanged.', { type: TYPES[key].title, added: stats.added, updated: stats.updated, kept: stats.kept });
+        return t('{type}: {added} added, {updated} updated.', { type: TYPES[key].title, added: stats.added, updated: stats.updated });
       });
       importReport = el('div', { className: 'notice notice--info', role: 'status' }, [
         el('p', null, [el('strong', { text: t('Import complete.') + ' ' }), t('Your draft has been updated. Remember to publish it.')]),
         reportList(lines),
-        check.warnings.length ? el('p', { text: t('Warnings (the content still works):') }) : null,
-        check.warnings.length ? reportList(check.warnings) : null
+        warnings.length ? el('p', { text: t('Warnings (the content still works):') }) : null,
+        warnings.length ? reportList(warnings) : null
       ]);
       commit(applied.library, t('Import complete.'));
       afterRender = function () { G12.focus(document.getElementById('import-result')); };
       go('tools');
-    }
-
-    var panel = el('div', { className: 'notice notice--demo choice-panel', role: 'region', 'aria-label': t('Choose how to import'), tabindex: '-1' }, [
-      el('h4', { text: t('The files are valid. Choose what to do:') }),
-      table,
-      notes.length ? el('div', null, [el('p', { text: t('Notes:') }), reportList(notes)]) : null,
-      conflictBlock,
-      el('ul', { className: 'choice-help' }, [
-        el('li', null, [el('strong', { text: t('Merge:') + ' ' }), t('adds the new items. Nothing in your draft is removed.')]),
-        el('li', null, [el('strong', { text: t('Replace:') + ' ' }), totalRemoved
-          ? t('for each type in the files, your current items are replaced by the files’ items. {items} in your draft will be removed.', { items: G12.plural(totalRemoved, 'item') })
-          : t('for each type in the files, your current items are replaced by the files’ items.')]),
-        el('li', null, [el('strong', { text: t('Cancel:') + ' ' }), t('nothing changes.')])
-      ]),
-      el('div', { className: 'actions' }, [
-        el('button', { type: 'button', className: 'btn btn--secondary', text: t('Cancel'), 'data-choice': 'cancel', onclick: function () {
-          G12.clear(result);
-          showMessage(t('Import cancelled. Nothing was changed.'));
-        } }),
-        el('button', { type: 'button', className: 'btn', text: t('Merge'), 'data-choice': 'merge', onclick: function () { apply('merge'); } }),
-        el('button', { type: 'button', className: 'btn btn--danger', text: t('Replace'), 'data-choice': 'replace', onclick: function () { apply('replace'); } })
-      ])
-    ]);
-    result.appendChild(panel);
-    G12.focus(panel);
+    }).catch(function (error) {
+      result.appendChild(el('div', { className: 'error-summary', role: 'alert' }, [el('p', { text: t('The file could not be read: {reason}', { reason: error.message }) })]));
+    });
   }
 })();

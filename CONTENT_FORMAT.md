@@ -194,38 +194,7 @@ there are no units.
 - **Errors** make an item unusable. On the student pages, an item with
   errors is skipped, and a short notice says how many were skipped; the rest
   of the page still works. The content manager never saves an item with
-  errors, refuses imports and restores that contain errors, and does not let
-  you download the data files for publishing while the draft has errors.
+  errors and refuses imports that contain errors.
 - **Warnings** do not stop anything. Examples: a lesson with no sections yet,
   a link to a unit or topic that does not exist, or a `unitId` that disagrees
   with its topic.
-
-## Backup file
-
-*Download backup file* in the content manager saves everything in one file,
-named like `grade12-english-backup-2026-01-31.json`:
-
-```json
-{
-  "schemaVersion": 2,
-  "type": "grade12-english-backup",
-  "exportedAt": "2026-01-31T09:30:00.000Z",
-  "units": [],
-  "lessons": [],
-  "summaries": [],
-  "questions": [],
-  "passages": []
-}
-```
-
-A backup can be **restored** (it replaces the whole draft, after showing
-what it contains) or **imported** like the data files (Cancel, Merge or
-Replace). It is not one of the website's data files: to publish, download
-the five data files instead.
-
-## Interface language
-
-The English/Arabic switch changes only the website's own text (menus,
-buttons, messages). Content is always shown exactly as written in these
-files, in whatever language it is written; the text direction of each item
-is detected from its own text (or set with `lang`, see above).

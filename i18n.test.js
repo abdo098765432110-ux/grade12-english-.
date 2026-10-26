@@ -63,7 +63,7 @@ const allKeys = new Set([...used.keys, ...dynamicKeys()]);
 
 test('the key finder sees the interface text in the code and pages', () => {
   assert.ok(used.keys.size > 500, 'expected hundreds of texts, found ' + used.keys.size);
-  ['Grammar Lessons', 'Check my answers', 'Import & export', 'Restore this backup', 'id is missing.'].forEach((key) => {
+  ['Grammar Lessons', 'Check my answers', 'Import & export', 'Download backup file', 'id is missing.'].forEach((key) => {
     assert.ok(used.keys.has(key), 'not found: ' + key);
   });
 });
@@ -150,7 +150,7 @@ test('unknown text falls back to English instead of breaking', () => {
 
 test('tNodes keeps elements (such as links) in the translated sentence', () => {
   const link = { element: 'a' };
-  const parts = ar.tNodes('Your changes are saved in this browser. Students cannot see them until you publish them from {link}.', null, { link });
+  const parts = ar.tNodes('They are saved in this browser. Students cannot see them until you publish them from {link}.', null, { link });
   assert.ok(parts.includes(link));
   assert.equal(typeof parts[0], 'string');
   assert.match(parts[0], /[؀-ۿ]/);

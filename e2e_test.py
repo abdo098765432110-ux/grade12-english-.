@@ -184,7 +184,7 @@ def manager_flow(context, base):
     page.on("dialog", on_dialog)
     page.goto(base + "manage.html")
     expect(page.locator("#manager-view .empty-state h3")).to_have_text("No lessons added yet")
-    expect(page.locator(".status-bar")).to_contain_text("Published — no unpublished changes")
+    expect(page.locator(".status-bar")).to_contain_text("No unpublished changes")
     audit(page, "manager (empty)")
 
     # --- Lesson 1: validation, then four section types
@@ -360,38 +360,7 @@ def manager_flow(context, base):
 
     nav = page.locator(".manager-nav").inner_text()
     record("navigation counts", all(s in nav for s in ["Lessons (1)", "Summaries (1)", "Grammar questions (3)", "Reading passages (1)"]), nav.replace("\n", " "))
-    expect(page.locator(".status-bar")).to_contain_text("Draft — not published yet.")
-    record("status counts the unpublished changes",
-           page.locator(".change-summary").inner_text() == "Unpublished changes: 6 new, 0 changed, 0 removed.",
-           page.locator(".change-summary").inner_text())
-
-    # --- Draft badges and preview links in the lists
-    page.click(".manager-nav >> text=Lessons")
-    row = page.locator(".manager-row").first
-    record("draft items are labelled 'New — not published'", row.locator(".badge--draft").inner_text() == "New — not published",
-           row.locator(".badges").inner_text())
-    preview = row.locator("a[data-action='preview']")
-    record("each item has a preview link to its student page",
-           preview.get_attribute("href") == "grammar.html?topic=renamed-lesson" and preview.get_attribute("target") == "_blank",
-           str(preview.get_attribute("href")))
-    with context.expect_page() as new_tab:
-        preview.click()
-    tab = watch(new_tab.value)
-    tab.wait_for_load_state()
-    settle(tab)
-    record("the preview link opens the draft on the student page (preview turned on)",
-           tab.locator("#preview-banner").is_visible() and tab.locator("h1").inner_text() == "Test lesson one"
-           and page.evaluate("() => localStorage.getItem('g12-preview-draft')") is not None)
-    no_errors(tab, "preview link")
-    tab.close()
-    page.evaluate("() => localStorage.removeItem('g12-preview-draft')")
-    page.click(".manager-nav >> text=Grammar questions")
-    expect(page).to_have_url(re.compile(r"#questions$"))
-    expect(page.locator(".manager-row")).to_have_count(3)
-    links = page.locator(".manager-row a[data-action='preview']")
-    record("question preview links open that single question",
-           links.first.get_attribute("href") == "practice.html?question=q-001", str(links.first.get_attribute("href")))
-
+    expect(page.locator(".status-bar")).to_contain_text("You have unpublished changes")
     page.click(".manager-nav >> text=Import & export")
     expect(page.locator("#check-heading + p + p")).to_have_text("No errors found.")
     audit(page, "import & export view")
@@ -571,36 +540,8 @@ def published_site(browser, base, files):
     expect(page.locator(".card h2")).to_have_text("Test lesson one")
     record("published files show on the student pages without preview", page.locator("#preview-banner").count() == 0)
     page.goto(base + "manage.html")
-    expect(page.locator(".status-bar")).to_contain_text("Published — no unpublished changes")
+    expect(page.locator(".status-bar")).to_contain_text("No unpublished changes")
     record("manager loads published content as its starting point", "Lessons (1)" in page.locator(".manager-nav").inner_text())
-    record("published items carry no draft label", page.locator(".badge--draft").count() == 0)
-
-    # Change one published item and delete another: the status counts both.
-    page.on("dialog", lambda dialog: dialog.accept())
-    page.click("[aria-label='Edit lesson “Test lesson one”']")
-    page.fill("#f-description", "Changed description")
-    page.click("button:has-text('Save changes')")
-    expect(page.locator(".manager-row .badge--draft")).to_have_text("Changed — not published")
-    page.click(".manager-nav >> text=Reading passages")
-    page.click("[data-id='test-passage'][data-action='delete']")
-    expect(page.locator(".change-summary")).to_have_text("Unpublished changes: 0 new, 1 changed, 1 removed.")
-    record("changed and removed items are counted as unpublished changes", True)
-
-    # A draft with an error cannot be exported.
-    page.evaluate("""() => {
-      const saved = JSON.parse(localStorage.getItem('g12-content-draft-v1'));
-      saved.library.questions[0].answer = 'Not one of the options';
-      localStorage.setItem('g12-content-draft-v1', JSON.stringify(saved));
-    }""")
-    page.goto(base + "manage.html#tools")
-    page.reload()  # load the edited draft (changing only the #hash does not reload the page)
-    settle(page)
-    expect(page.locator("#publish")).to_contain_text("Publishing is blocked until the errors are fixed.")
-    buttons = page.locator("#publish button")
-    record("export is blocked while the draft has errors (all download buttons disabled)",
-           buttons.count() == 6 and buttons.evaluate_all("list => list.every(b => b.disabled)")
-           and "does not exactly match any option" in page.locator("#check").inner_text())
-    page.screenshot(path=str(SHOTS / "17-publish-blocked.png"), full_page=True)
     no_errors(page, "published site")
     context.close()
 
@@ -631,156 +572,53 @@ def published_site(browser, base, files):
     context.close()
 
 
-# ---------------------------------------------------------------- 5. import, backup and restore
-
-def check_import(page, *paths):
-    """Choose files in the Import section and press 'Check files' (nothing is imported yet)."""
-    page.set_input_files("#import-files", [str(path) for path in paths])
-    page.click("#import button[type='submit']")
-
-
-def nav_text(page):
-    return page.locator(".manager-nav").inner_text().replace("\n", " ")
-
+# ---------------------------------------------------------------- 5. import
 
 def import_flow(browser, base, backup):
-    context = browser.new_context(accept_downloads=True)
+    context = browser.new_context()
     page = watch(context.new_page())
-    dialogs = []
-
-    def on_dialog(dialog):
-        dialogs.append(dialog.message)
-        if getattr(page, "dismiss_next", False):
-            page.dismiss_next = False
-            dialog.dismiss()
-        else:
-            dialog.accept()
-
-    page.on("dialog", on_dialog)
+    page.on("dialog", lambda dialog: dialog.accept())
     page.goto(base + "manage.html#tools")
-    settle(page)
-    audit(page, "import & export (empty draft)")
 
-    # a) Files are checked and described first; Cancel changes nothing.
-    check_import(page, backup)
-    panel = page.locator("#import-result .choice-panel")
-    expect(panel).to_contain_text("The files are valid. Choose what to do:")
-    rows = [r.replace("\t", " ") for r in panel.locator("tbody tr").all_inner_texts()]
-    record("import: files are described before anything changes",
-           draft(page) is None and "Lessons 1 1 0 0" in rows and "Grammar questions 3 3 0 0" in rows, " | ".join(rows))
-    audit(page, "import choice panel")
-    page.screenshot(path=str(SHOTS / "18-import-choice.png"), full_page=True)
-    page.click("#import-result button[data-choice='cancel']")
-    expect(page.locator(".manager-message")).to_contain_text("Import cancelled. Nothing was changed.")
-    record("import: Cancel changes nothing", draft(page) is None and panel.count() == 0)
-
-    # b) Merge into the empty draft.
-    check_import(page, backup)
-    page.click("#import-result button[data-choice='merge']")
+    page.set_input_files("#import-files", str(backup))
+    page.click("#import-result >> xpath=.. >> button:has-text('Import')")
     expect(page.locator("#import-result")).to_contain_text("Import complete")
-    nav = nav_text(page)
-    record("import: Merge adds everything from a backup",
-           "Lessons (1)" in nav and "Grammar questions (3)" in nav and "Reading passages (1)" in nav, nav)
+    nav = page.locator(".manager-nav").inner_text()
+    record("backup import (merge) restores everything", "Lessons (1)" in nav and "Grammar questions (3)" in nav and "Reading passages (1)" in nav, nav.replace("\n", " "))
 
-    # c) The same file again: existing items are kept by default, or replaced if chosen.
-    page.goto(base + "manage.html#lessons")
-    page.click("[aria-label='Edit lesson “Test lesson one”']")
-    page.fill("#f-title", "Changed locally")
-    page.click("button:has-text('Save changes')")
-    page.goto(base + "manage.html#tools")
-    check_import(page, backup)
-    expect(panel).to_contain_text("already exist in your draft")
-    expect(panel).to_contain_text("Lessons: Changed locally")
-    record("import: 'Keep my current versions' is chosen by default", page.is_checked("#import-keep") and not page.is_checked("#import-update"))
-    page.click("#import-result button[data-choice='merge']")
-    expect(page.locator("#import-result")).to_contain_text("Lessons: 0 added, 0 updated, 1 kept unchanged.")
-    record("import: Merge + keep leaves existing items as they are", draft(page)["lessons"][0]["title"] == "Changed locally")
-    check_import(page, backup)
-    page.check("#import-update")
-    page.click("#import-result button[data-choice='merge']")
-    expect(page.locator("#import-result")).to_contain_text("Lessons: 0 added, 1 updated, 0 kept unchanged.")
-    record("import: Merge + replace-with-imported updates existing items", draft(page)["lessons"][0]["title"] == "Test lesson one")
-    nav = nav_text(page)
-    record("import: importing the same backup twice never duplicates items", "Lessons (1)" in nav and "Grammar questions (3)" in nav, nav)
+    page.set_input_files("#import-files", str(backup))
+    page.click("#import-result >> xpath=.. >> button:has-text('Import')")
+    expect(page.locator("#import-result")).to_contain_text("Lessons: 0 added, 1 updated.")
+    record("importing the same backup again updates instead of duplicating", True)
 
-    # d) Replace asks first (Cancel in the dialog keeps everything), then swaps only that type.
-    single = DOWNLOADS / "one-question.json"
-    single.write_text(json.dumps({"schemaVersion": 2, "questions": [
-        {"id": "q-777", "type": "mcq", "prompt": "Replacement", "options": ["A", "B"], "answer": "A", "reviewStatus": "unreviewed"}]}))
-    check_import(page, single)
-    expect(panel.locator("tbody tr")).to_have_count(1)
-    rows = [r.replace("\t", " ") for r in panel.locator("tbody tr").all_inner_texts()]
-    record("import: the table shows what Replace would remove", rows == ["Grammar questions 1 1 0 3"], " | ".join(rows))
-    expect(panel).to_contain_text("3 items in your draft will be removed")
-    page.dismiss_next = True
-    page.click("#import-result button[data-choice='replace']")
-    page.wait_for_timeout(200)
-    record("import: Replace warns first; cancelling the warning changes nothing",
-           "Grammar questions (3)" in nav_text(page) and "removed" in dialogs[-1], dialogs[-1].replace("\n", " | "))
-    page.click("#import-result button[data-choice='replace']")
-    expect(page.locator("#import-result")).to_contain_text("Grammar questions: replaced (3 removed, 1 imported).")
-    nav = nav_text(page)
-    record("import: Replace swaps only the imported type", "Grammar questions (1)" in nav and "Lessons (1)" in nav, nav)
-
-    # e) Invalid files are rejected with useful messages; nothing changes.
     bad = DOWNLOADS / "bad-questions.json"
-    bad.write_text(json.dumps({"schemaVersion": 2, "questions": [
+    bad.write_text(json.dumps({"schemaVersion": 1, "questions": [
         {"id": "q-900", "type": "mcq", "prompt": "Bad", "options": ["A", "B"], "answer": "Z", "reviewStatus": "unreviewed"}]}))
-    check_import(page, bad)
+    page.set_input_files("#import-files", str(bad))
+    page.click("#import-result >> xpath=.. >> button:has-text('Import')")
     expect(page.locator("#import-result")).to_contain_text("Nothing was imported")
     expect(page.locator("#import-result")).to_contain_text("does not exactly match any option")
-    record("import: a wrong answer key is rejected", "Grammar questions (1)" in nav_text(page))
+    record("an invalid file is rejected and nothing changes", "Grammar questions (3)" in page.locator(".manager-nav").inner_text())
+
     notjson = DOWNLOADS / "not-json.json"
     notjson.write_text("hello")
-    check_import(page, notjson)
+    page.set_input_files("#import-files", str(notjson))
+    page.click("#import-result >> xpath=.. >> button:has-text('Import')")
     expect(page.locator("#import-result")).to_contain_text("is not valid JSON")
-    record("import: malformed JSON is rejected", True)
-    twin_a, twin_b = DOWNLOADS / "twin-a.json", DOWNLOADS / "twin-b.json"
-    for twin, prompt in [(twin_a, "First"), (twin_b, "Second")]:
-        twin.write_text(json.dumps({"schemaVersion": 2, "questions": [
-            {"id": "q-500", "type": "mcq", "prompt": prompt, "options": ["A", "B"], "answer": "A", "reviewStatus": "unreviewed"}]}))
-    check_import(page, twin_a, twin_b)
-    expect(page.locator("#import-result")).to_contain_text("already used by")
-    record("import: duplicate IDs across the chosen files are rejected", "Grammar questions (1)" in nav_text(page))
-    empty_object = DOWNLOADS / "nothing.json"
-    empty_object.write_text("{}")
-    check_import(page, empty_object)
-    expect(page.locator("#import-result")).to_contain_text("does not contain units, lessons, summaries, questions or passages")
-    page.click("#import button[type='submit']")
-    expect(page.locator("#import-result")).to_contain_text("does not contain")  # same file still chosen
-    no_errors(page, "import")
 
-    # f) Restore a backup: checked and compared first; Cancel; download current draft first; restore.
-    page.set_input_files("#restore-file", str(single))
-    page.click("#backup button:has-text('Check backup')")
-    expect(page.locator("#restore-result")).to_contain_text("This is not a backup file")
-    page.set_input_files("#restore-file", str(backup))
-    page.click("#backup button:has-text('Check backup')")
-    restore = page.locator("#restore-result .choice-panel")
-    expect(restore).to_contain_text("The backup contains: 0 units, 1 lesson, 1 summary, 3 grammar questions and 1 reading passage.")
-    expect(restore).to_contain_text("Your current draft contains: 0 units, 1 lesson, 1 summary, 1 grammar question and 1 reading passage.")
-    record("restore: shows the backup's date and contents next to the current draft",
-           "Backup made on" in restore.inner_text())
-    audit(page, "restore panel")
-    page.screenshot(path=str(SHOTS / "19-restore-choice.png"), full_page=True)
-    page.click("#restore-result button:has-text('Cancel')")
-    expect(page.locator(".manager-message")).to_contain_text("Restore cancelled. Nothing was changed.")
-    record("restore: Cancel changes nothing", "Grammar questions (1)" in nav_text(page))
-    page.click("#backup button:has-text('Check backup')")
-    with page.expect_download() as info:
-        page.click("#restore-result button:has-text('Download a backup of my current draft first')")
-    record("restore: the current draft can be saved first", info.value.suggested_filename.startswith("grade12-english-backup-"))
-    page.click("#restore-result button:has-text('Restore this backup')")
-    expect(page.locator("#import-result")).to_contain_text("Backup restored.")
-    nav = nav_text(page)
-    record("restore: asks first, then the draft matches the backup",
-           "Replace your whole draft with this backup?" in dialogs[-1] and "Grammar questions (3)" in nav and "Lessons (1)" in nav, nav)
+    single = DOWNLOADS / "one-question.json"
+    single.write_text(json.dumps({"schemaVersion": 1, "questions": [
+        {"id": "q-777", "type": "mcq", "prompt": "Replacement", "options": ["A", "B"], "answer": "A", "reviewStatus": "unreviewed"}]}))
+    page.set_input_files("#import-files", str(single))
+    page.check("#import-replace")
+    page.click("#import-result >> xpath=.. >> button:has-text('Import')")
+    expect(page.locator(".manager-nav")).to_contain_text("Grammar questions (1)")
+    record("replace import swaps only the imported type", "Lessons (1)" in page.locator(".manager-nav").inner_text())
 
-    # g) Discard the draft.
     page.click("button:has-text('Discard my draft')")
     expect(page.locator(".manager-nav")).to_contain_text("Lessons (0)")
     record("discarding the draft returns to the published (empty) files", draft(page) is None)
-    no_errors(page, "restore and discard")
+    no_errors(page, "import")
     context.close()
 
 
@@ -1210,24 +1048,23 @@ def phase2_manager(browser, base):
     record("manager: units.json can be downloaded", info.value.suggested_filename == "units.json")
     old_format = DOWNLOADS / "old-format-questions.json"
     old_format.write_text(json.dumps({"schemaVersion": 1, "questions": [fixture_question("q-900", topic="test-topic-a")]}))
-    check_import(page, old_format)
-    page.click("#import-result button[data-choice='merge']")
+    page.set_input_files("#import-files", str(old_format))
+    page.click("#import-result >> xpath=.. >> button:has-text('Import')")
     expect(page.locator("#import-result")).to_contain_text("Import complete")
     imported = [q for q in draft(page)["questions"] if q["id"] == "q-900"][0]
     record("manager: importing a version 1 file upgrades its field names", imported.get("topicId") == "test-topic-a" and "topic" not in imported)
     letter = DOWNLOADS / "letter-answer.json"
     letter.write_text(json.dumps({"schemaVersion": 2, "questions": [fixture_question("q-901", answer="B")]}))
-    check_import(page, letter)
-    expect(page.locator("#import-result")).to_contain_text("Nothing was imported")
+    page.set_input_files("#import-files", str(letter))
+    page.click("#import-result >> xpath=.. >> button:has-text('Import')")
     expect(page.locator("#import-result")).to_contain_text("looks like an option letter")
     record("manager: an answer key written as a letter is rejected with a hint", True)
     no_errors(page, "phase 2 manager")
     context.close()
 
 
-# ---------------------------------------------------------------- 10. Phase 3: language switch, banner, Arabic interface
+# ---------------------------------------------------------------- 10. Arabic / English interface
 
-BANNER_PHRASE = "سمي الله وصلي علي النبي وخش عيش حياتك"
 PAGES = ["index.html", "grammar.html", "summaries.html", "practice.html", "reading.html", "manage.html"]
 NAV_HREFS = ["index.html", "grammar.html", "summaries.html", "practice.html", "reading.html"]
 NAV_EN = ["Home", "Grammar Lessons", "Grammar Summaries", "Grammar Practice", "Reading Comprehension"]
@@ -1275,8 +1112,6 @@ def language_switch(browser, base):
            page.locator(".lang-toggle").inner_text() == "English" and page.locator(".lang-toggle").get_attribute("lang") == "en")
     record("Arabic: page title and headings are translated",
            ARABIC.search(page.title()) is not None and ARABIC.search(page.locator("h1").inner_text()) is not None, page.title())
-    record("Arabic: the home banner is not changed by the language switch",
-           page.locator(".home-banner").inner_text().strip() == BANNER_PHRASE)
 
     # The choice is remembered on every page and after reloading.
     for path in PAGES:
@@ -1330,47 +1165,6 @@ def language_switch(browser, base):
     context.close()
 
 
-def home_banner(browser, base):
-    for lang in ["en", "ar"]:
-        for width in [320, 375, 768, 1280]:
-            context = browser.new_context(viewport={"width": width, "height": 900})
-            page = watch(context.new_page())
-            if lang == "ar":
-                use_arabic(page, base)
-            page.goto(base + "index.html")
-            settle(page)
-            banner = page.locator(".home-banner")
-            box = banner.bounding_box()
-            header = page.locator(".site-header").bounding_box()
-            main_box = page.locator("main").bounding_box()
-            centre_offset = abs((box["x"] + box["width"] / 2) - (main_box["x"] + main_box["width"] / 2))
-            fits = banner.evaluate("b => b.scrollWidth <= b.clientWidth + 1")
-            first = page.evaluate("() => document.querySelector('main').firstElementChild.classList.contains('home-banner')")
-            label = "banner %s %dpx" % (lang, width)
-            record(label + ": exact phrase, right-to-left, first on the page, centred",
-                   banner.inner_text().strip() == BANNER_PHRASE and banner.get_attribute("dir") == "rtl"
-                   and banner.get_attribute("lang") == "ar" and first and centre_offset < 2 and fits,
-                   "offset %.1f, fits %s" % (centre_offset, fits))
-            record(label + ": below the navigation, not covering it",
-                   box["y"] >= header["y"] + header["height"] - 0.5
-                   and page.evaluate("""() => [...document.querySelectorAll('.site-header a, .site-header button')]
-                        .filter(n => n.offsetParent)
-                        .every(n => { const r = n.getBoundingClientRect();
-                                      const hit = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
-                                      return hit && (hit === n || n.contains(hit)); })"""))
-            if width <= 768 and page.is_visible(".nav-toggle"):
-                page.click(".nav-toggle")
-                opened = page.locator(".site-header").bounding_box()
-                record(label + ": the opened menu pushes the banner down instead of overlapping",
-                       banner.bounding_box()["y"] >= opened["y"] + opened["height"] - 0.5)
-                page.click(".nav-toggle")
-            audit(page, label)
-            if width in (375, 1280):
-                page.screenshot(path=str(SHOTS / ("22-banner-%s-%d.png" % (lang, width))), full_page=False)
-            no_errors(page, label)
-            context.close()
-
-
 def arabic_interface(browser, base):
     """Arabic interface with placeholder content: the content itself must stay exactly as written."""
     context = browser.new_context(viewport={"width": 1280, "height": 900})
@@ -1402,12 +1196,13 @@ def arabic_interface(browser, base):
            options == ["كل الوحدات (4)", "Test unit one (3)", "Test unit two (لا أسئلة بعد)", "أسئلة بلا وحدة (1)"]
            and page.locator("label[for='practice-unit']").inner_text() == "الوحدة", str(options))
 
-    page.goto(base + "practice.html?question=q1")
+    page.goto(base + "practice.html?topic=l1")
     settle(page)
+    page.click("button:has-text('ابدأ التدريب')")
     expect(page.locator(".question-legend")).to_contain_text("Test prompt q1")
-    record("practice ?question= shows that single question (Arabic note)",
-           page.locator("main").inner_text().count("Test prompt") == 1 and "يُعرض سؤال واحد فقط." in page.inner_text("main")
-           and [label.split("\n")[-1] for label in page.locator(".options label").all_inner_texts()] == ["Opt A", "Opt B", "Opt C"])
+    record("Arabic practice: question and answer choices shown exactly as written",
+           [label.split("\n")[-1] for label in page.locator(".options label").all_inner_texts()] == ["Opt A", "Opt B", "Opt C"]
+           and page.locator(".quiz-progress-text").inner_text() == "السؤال 1 من 1")
     record("Arabic practice: the question box follows the question's own direction (English, left-to-right)",
            page.locator(".question-form fieldset").evaluate("f => getComputedStyle(f).direction") == "ltr"
            and page.locator(".quiz-progress-text").evaluate("p => getComputedStyle(p).direction") == "rtl")
@@ -1438,7 +1233,7 @@ def arabic_interface(browser, base):
     settle(page)
     record("Arabic manager: content titles are shown as written",
            page.locator(".manager-row-title").all_inner_texts() == ["Test topic one", "Test topic without unit"])
-    page.click(".manager-row[data-row='l1'] a:has-text('تعديل')")
+    page.click("[aria-label='تعديل الدرس «Test topic one»']")
     page.fill("#f-title", "")
     page.click("#manager-view button:has-text('حفظ التغييرات')")
     expect(page.locator(".error-summary")).to_contain_text("اكتب عنوانًا.")
@@ -1458,7 +1253,8 @@ def arabic_interface(browser, base):
     settle(page)
     letter = DOWNLOADS / "letter-answer-ar.json"
     letter.write_text(json.dumps({"schemaVersion": 2, "questions": [fixture_question("q-950", answer="B")]}))
-    check_import(page, letter)
+    page.set_input_files("#import-files", str(letter))
+    page.click("#import-result >> xpath=.. >> button[type='submit']")
     expect(page.locator("#import-result")).to_contain_text("لم يُستورد أي شيء")
     expect(page.locator("#import-result")).to_contain_text("تبدو حرف اختيار")
     record("Arabic manager: import errors are in Arabic", True)
@@ -1527,9 +1323,8 @@ def main():
         run_section("navigation", navigation, browser, base)
         run_section("phase 2 student pages", phase2_pages, browser, base)
         run_section("phase 2 content manager", phase2_manager, browser, base)
-        run_section("phase 3 language switch", language_switch, browser, base)
-        run_section("phase 3 home banner", home_banner, browser, base)
-        run_section("phase 3 Arabic interface", arabic_interface, browser, base)
+        run_section("language switch", language_switch, browser, base)
+        run_section("Arabic interface", arabic_interface, browser, base)
         browser.close()
     server.shutdown()
     contrast()

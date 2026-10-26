@@ -137,64 +137,28 @@
   /* ---------- Import ---------- */
 
   /**
-   * Describes what an import would do, before anything changes:
-   *   { units: { incoming, added: [ids], existing: [ids], current, removedByReplace: [ids] }, ... }
-   * existing = items in the file whose ID is already in the library.
-   * removedByReplace = current items that "Replace" would delete (their ID
-   * is not in the file).
-   */
-  function analyzeImport(library, collections) {
-    var current = normalizeLibrary(library);
-    var result = {};
-    Object.keys(collections).forEach(function (key) {
-      if (Schema.COLLECTION_KEYS.indexOf(key) === -1) return;
-      var incoming = collections[key] || [];
-      var currentIds = current[key].map(function (item) { return item && item.id; });
-      var incomingIds = incoming.map(function (item) { return item && item.id; });
-      var info = { incoming: incoming.length, added: [], existing: [], current: current[key].length, removedByReplace: [] };
-      incomingIds.forEach(function (id) {
-        if (currentIds.indexOf(id) !== -1) {
-          if (info.existing.indexOf(id) === -1) info.existing.push(id);
-        } else if (info.added.indexOf(id) === -1) {
-          info.added.push(id);
-        }
-      });
-      currentIds.forEach(function (id) {
-        if (incomingIds.indexOf(id) === -1) info.removedByReplace.push(id);
-      });
-      result[key] = info;
-    });
-    return result;
-  }
-
-  /**
    * Applies imported collections to a library.
-   *   mode "merge":   new IDs are added. Items with an ID that already exists
-   *                   are updated, or kept as they are with { keepExisting: true }.
-   *                   Nothing is removed.
+   *   mode "merge":   items with the same id are replaced, new ids are added.
    *   mode "replace": each imported collection replaces the existing one.
    * Collections that are not in the import are left unchanged.
    */
-  function applyImport(library, collections, mode, options) {
-    options = options || {};
+  function applyImport(library, collections, mode) {
     var next = normalizeLibrary(library);
     var summary = {};
     Object.keys(collections).forEach(function (key) {
       if (Schema.COLLECTION_KEYS.indexOf(key) === -1) return;
       var incoming = Schema.upgradeCollection(key, Schema.clone(collections[key]) || []);
       if (mode === 'replace') {
-        summary[key] = { added: incoming.length, updated: 0, kept: 0, removed: next[key].length };
+        summary[key] = { added: incoming.length, updated: 0, removed: next[key].length };
         next[key] = incoming;
         return;
       }
-      var stats = { added: 0, updated: 0, kept: 0, removed: 0 };
+      var stats = { added: 0, updated: 0, removed: 0 };
       incoming.forEach(function (item) {
         var position = item && typeof item.id === 'string' ? indexOfId(next[key], item.id) : -1;
         if (position === -1) {
           next[key].push(item);
           stats.added += 1;
-        } else if (options.keepExisting) {
-          stats.kept += 1;
         } else {
           next[key][position] = item;
           stats.updated += 1;
@@ -203,19 +167,6 @@
       summary[key] = stats;
     });
     return { library: next, summary: summary };
-  }
-
-  /**
-   * Reads a backup file for "Restore". Returns { library, exportedAt } or
-   * null when the data is not a backup (a single data file, for example).
-   * Backups made before units existed are accepted (they have no units).
-   */
-  function readBackup(data) {
-    if (!data || typeof data !== 'object' || Array.isArray(data)) return null;
-    var isBackup = data.type === BACKUP_TYPE ||
-      ['lessons', 'summaries', 'questions', 'passages'].every(function (key) { return Array.isArray(data[key]); });
-    if (!isBackup) return null;
-    return { library: normalizeLibrary(data), exportedAt: typeof data.exportedAt === 'string' ? data.exportedAt : null };
   }
 
   /* ---------- Export ---------- */
@@ -321,9 +272,7 @@
     countUnitLinks: countUnitLinks,
     deleteItem: deleteItem,
     moveItem: moveItem,
-    analyzeImport: analyzeImport,
     applyImport: applyImport,
-    readBackup: readBackup,
     fileData: fileData,
     backupData: backupData,
     browserStorage: browserStorage,

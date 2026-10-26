@@ -29,8 +29,6 @@
   --font-arabic: "Noto Naskh Arabic", "Segoe UI", Tahoma, Arial, sans-serif;
   /* System fonts only (no downloads). Interface text in Arabic: */
   --font-arabic-ui: "Segoe UI", Tahoma, "Noto Sans Arabic", "Noto Naskh Arabic", "Geeza Pro", "Arabic UI Text", Arial, sans-serif;
-  /* Home page banner: */
-  --font-arabic-display: "Noto Kufi Arabic", "Segoe UI", "Geeza Pro", "Noto Sans Arabic", Tahoma, Arial, sans-serif;
   --max-width: 72rem;
 }
 
@@ -113,50 +111,6 @@ a:hover { color: var(--color-primary-dark); }
 html[lang="ar"] body {
   font-family: var(--font-arabic-ui);
   line-height: 1.7;
-}
-
-/* ---------- Home page banner ---------- */
-/* .home-banner[lang="ar"] keeps the banner's own font and size instead of
-   the smaller settings for Arabic content further down. */
-.home-banner,
-.home-banner[lang="ar"] {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: clamp(0.5rem, 2vw, 1rem);
-  margin: 0.75rem 0 1.25rem;
-  padding: clamp(1rem, 3vw, 1.6rem) clamp(1rem, 4vw, 2.5rem);
-  border-radius: 14px;
-  background:
-    radial-gradient(circle at 12% 20%, rgba(255, 255, 255, 0.10) 0 16%, transparent 17%),
-    radial-gradient(circle at 88% 85%, rgba(255, 255, 255, 0.08) 0 20%, transparent 21%),
-    linear-gradient(135deg, #1f4e79 0%, #163a5a 60%, #102c45 100%);
-  color: #fff;
-  box-shadow: var(--shadow);
-  text-align: center;
-  font-family: var(--font-arabic-display);
-  font-size: clamp(1.3rem, 3.4vw, 2.1rem);
-  font-weight: 700;
-  line-height: 1.7;
-}
-
-.home-banner-text { min-width: 0; overflow-wrap: anywhere; }
-
-/* Thin gold lines on both sides of the phrase. */
-.home-banner::before,
-.home-banner::after {
-  content: "";
-  flex: 0 0 clamp(1.25rem, 6vw, 4.5rem);
-  height: 2px;
-  border-radius: 2px;
-  background: linear-gradient(90deg, transparent, var(--color-focus));
-}
-
-.home-banner::after { background: linear-gradient(90deg, var(--color-focus), transparent); }
-
-@media (max-width: 24rem) {
-  .home-banner::before,
-  .home-banner::after { display: none; }
 }
 
 /* ---------- Skip link ---------- */
@@ -450,8 +404,6 @@ main {
 
 .badge--unreviewed { background: var(--color-warning-bg); color: var(--color-warning); border-color: #e9cf96; }
 .badge--reviewed { background: var(--color-success-bg); color: var(--color-success); border-color: #a9d8bb; }
-/* Content manager: items that are only in the browser draft. */
-.badge--draft { background: var(--color-primary-light); color: var(--color-primary); border-color: currentColor; border-style: dashed; }
 
 /* ---------- Cards ---------- */
 .card-grid {
@@ -1454,25 +1406,7 @@ input[type="file"] { font: inherit; max-width: 100%; }
   max-width: 52rem;
 }
 
-.tool-section h2,
-.tool-section > h3 { margin-top: 0; font-size: 1.25rem; }
-.tool-section h4 { margin: 1.25rem 0 0.5rem; font-size: 1.05rem; }
-.error-summary h4 { margin: 0 0 0.4rem; font-size: 1.05rem; color: var(--color-danger); }
-
-.publish-steps li { margin-bottom: 0.5rem; }
-
-/* Import and restore: the choice shown before anything changes. */
-.choice-panel { margin-top: 1rem; }
-.choice-panel h4 { margin-top: 0; }
-.choice-panel .table-wrap { margin: 0.75rem 0; background: var(--color-surface); }
-.choice-panel th,
-.choice-panel td { text-align: start; }
-.choice-panel fieldset { border: 0; padding: 0; margin: 0.75rem 0; }
-.choice-panel legend { font-weight: 600; margin-bottom: 0.25rem; }
-.choice-help { padding-inline-start: 1.25rem; margin: 0.75rem 0; }
-.choice-help li { margin-bottom: 0.35rem; }
-
-.change-summary { font-weight: 600; }
+.tool-section h2 { margin-top: 0; font-size: 1.25rem; }
 
 .word-count {
   font-size: 0.9rem;

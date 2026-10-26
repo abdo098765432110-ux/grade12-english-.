@@ -80,62 +80,14 @@ test('applyImport merge adds and updates by id; replace swaps whole collections'
     ]
   };
   const merged = Store.applyImport(sampleLibrary(), incoming, 'merge');
-  assert.deepEqual(merged.summary.questions, { added: 1, updated: 1, kept: 0, removed: 0 });
+  assert.deepEqual(merged.summary.questions, { added: 1, updated: 1, removed: 0 });
   assert.deepEqual(merged.library.questions.map((q) => q.id), ['q-001', 'q-002', 'q-003']);
   assert.equal(merged.library.questions[1].prompt, 'Updated');
   assert.equal(merged.library.lessons.length, 2, 'collections not in the import are untouched');
 
   const replaced = Store.applyImport(sampleLibrary(), incoming, 'replace');
-  assert.deepEqual(replaced.summary.questions, { added: 2, updated: 0, kept: 0, removed: 2 });
+  assert.deepEqual(replaced.summary.questions, { added: 2, updated: 0, removed: 2 });
   assert.deepEqual(replaced.library.questions.map((q) => q.id), ['q-002', 'q-003']);
-});
-
-test('analyzeImport describes new, existing and removed items without changing anything', () => {
-  const library = sampleLibrary();
-  const before = JSON.stringify(library);
-  const incoming = {
-    questions: [
-      { id: 'q-002', type: 'mcq', prompt: 'Updated', options: ['A', 'B'], answer: 'A', reviewStatus: 'reviewed' },
-      { id: 'q-003', type: 'short', prompt: 'New', modelAnswer: 'M', reviewStatus: 'unreviewed' }
-    ],
-    units: []
-  };
-  const analysis = Store.analyzeImport(library, incoming);
-  assert.deepEqual(analysis.questions, { incoming: 2, added: ['q-003'], existing: ['q-002'], current: 2, removedByReplace: ['q-001'] });
-  assert.deepEqual(analysis.units, { incoming: 0, added: [], existing: [], current: 1, removedByReplace: ['u1'] });
-  assert.equal(analysis.lessons, undefined, 'collections not in the files are not described');
-  assert.equal(JSON.stringify(library), before);
-});
-
-test('applyImport merge can keep the existing versions', () => {
-  const incoming = {
-    questions: [
-      { id: 'q-002', type: 'mcq', prompt: 'Updated', options: ['A', 'B'], answer: 'A', reviewStatus: 'reviewed' },
-      { id: 'q-003', type: 'short', prompt: 'New', modelAnswer: 'M', reviewStatus: 'unreviewed' }
-    ]
-  };
-  const kept = Store.applyImport(sampleLibrary(), incoming, 'merge', { keepExisting: true });
-  assert.deepEqual(kept.summary.questions, { added: 1, updated: 0, kept: 1, removed: 0 });
-  assert.equal(kept.library.questions[1].prompt, 'P2', 'the current version is kept');
-  assert.deepEqual(kept.library.questions.map((q) => q.id), ['q-001', 'q-002', 'q-003']);
-});
-
-test('readBackup accepts backups (also older ones) and rejects single data files', () => {
-  const backup = Store.backupData(sampleLibrary(), new Date('2026-01-02T03:04:05Z'));
-  const read = Store.readBackup(JSON.parse(JSON.stringify(backup)));
-  assert.equal(read.exportedAt, '2026-01-02T03:04:05.000Z');
-  assert.equal(read.library.lessons.length, 2);
-  assert.equal(read.library.units.length, 1);
-
-  const older = { lessons: [], summaries: [], questions: [{ id: 'q-1', type: 'short', prompt: 'P', modelAnswer: 'M', reviewStatus: 'unreviewed' }], passages: [] };
-  const readOlder = Store.readBackup(older);
-  assert.equal(readOlder.exportedAt, null);
-  assert.deepEqual(readOlder.library.units, [], 'backups made before units existed get an empty units list');
-
-  assert.equal(Store.readBackup({ schemaVersion: 2, questions: [] }), null, 'a single data file is not a backup');
-  assert.equal(Store.readBackup([]), null);
-  assert.equal(Store.readBackup(null), null);
-  assert.equal(Store.readBackup('text'), null);
 });
 
 test('export formats: data file and backup', () => {
